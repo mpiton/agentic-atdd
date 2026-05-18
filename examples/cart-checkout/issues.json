@@ -1,0 +1,50 @@
+{
+  "_comment": "Synthetic example output from `to-issues-atdd`. Issue numbers are placeholders; a real run would carry the numbers minted by `gh issue create`.",
+  "parent": 1001,
+  "us": 1002,
+  "milestone": "v2.4.0",
+  "scenarios": {
+    "r-01-nominal-single-item": {
+      "issue": 1010,
+      "feature": "examples/cart-checkout/r-01-non-empty-cart.feature",
+      "level": "use-case",
+      "rule": "R-01",
+      "branch": "nominal"
+    },
+    "r-01-empty-cart": {
+      "issue": 1011,
+      "feature": "examples/cart-checkout/r-01-non-empty-cart.feature",
+      "level": "use-case",
+      "rule": "R-01",
+      "branch": "violation"
+    },
+    "r-01-invalid-quantity": {
+      "issue": 1012,
+      "feature": "examples/cart-checkout/r-01-non-empty-cart.feature",
+      "level": "use-case",
+      "rule": "R-01",
+      "branch": "limit"
+    },
+    "r-05-authorized-card": {
+      "issue": 1050,
+      "feature": "examples/cart-checkout/r-05-payment-authorization.feature",
+      "level": "e2e",
+      "rule": "R-05",
+      "branch": "nominal"
+    },
+    "r-05-declined-card": {
+      "issue": 1051,
+      "feature": "examples/cart-checkout/r-05-payment-authorization.feature",
+      "level": "e2e",
+      "rule": "R-05",
+      "branch": "violation"
+    },
+    "r-05-gateway-timeout": {
+      "issue": 1052,
+      "feature": "examples/cart-checkout/r-05-payment-authorization.feature",
+      "level": "e2e",
+      "rule": "R-05",
+      "branch": "technical"
+    }
+  }
+}

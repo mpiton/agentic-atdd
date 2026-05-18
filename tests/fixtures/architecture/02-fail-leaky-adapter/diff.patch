@@ -1,0 +1,20 @@
+diff --git a/src/domain/cart.ts b/src/domain/cart.ts
+--- a/src/domain/cart.ts
++++ b/src/domain/cart.ts
+@@ -1,4 +1,18 @@
+ export type Cart = { lines: CartLine[]; totalEUR: number };
++
++// Adapter logic leaked into the domain layer.
++import Stripe from "stripe";
++const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
++
++export async function submitBasket(input: {
++  basket: Cart;
++  customerId: string;
++}): Promise<{ ok: boolean }> {
++  const charge = await stripe.charges.create({
++    amount: Math.round(input.basket.totalEUR * 100),
++    currency: "eur",
++  });
++  return { ok: charge.status === "succeeded" };
++}

@@ -1,0 +1,36 @@
+{
+  "name": "atdd-pipeline",
+  "version": "0.1.0",
+  "description": "Multi-agent ATDD pipeline: impact mapping -> Gherkin -> GitHub issues -> RED/GREEN cycle with parallel reviewers.",
+  "author": "matvei",
+  "skills": [
+    { "name": "impact-map",          "path": "skills/spec/impact-map/SKILL.md" },
+    { "name": "from-issue",          "path": "skills/spec/from-issue/SKILL.md" },
+    { "name": "spec-generate",       "path": "skills/spec/spec-generate/SKILL.md" },
+    { "name": "spec-review",         "path": "skills/spec/spec-review/SKILL.md" },
+    { "name": "to-issues-atdd",      "path": "skills/sync/to-issues-atdd/SKILL.md" },
+    { "name": "red-cycle",           "path": "skills/execute/red-cycle/SKILL.md" },
+    { "name": "green-cycle",         "path": "skills/execute/green-cycle/SKILL.md" },
+    { "name": "review-fidelity",     "path": "skills/execute/review-fidelity/SKILL.md" },
+    { "name": "review-architecture", "path": "skills/execute/review-architecture/SKILL.md" },
+    { "name": "review-intent",       "path": "skills/execute/review-intent/SKILL.md" },
+    { "name": "pr-auto-merge",       "path": "skills/execute/pr-auto-merge/SKILL.md" },
+    { "name": "atdd-run",            "path": "skills/orchestrate/atdd-run/SKILL.md" },
+    { "name": "setup-atdd-pipeline", "path": "skills/orchestrate/setup-atdd-pipeline/SKILL.md" }
+  ],
+  "commands": [
+    { "name": "setup-atdd-pipeline", "skill": "setup-atdd-pipeline" },
+    { "name": "impact-map",          "skill": "impact-map" },
+    { "name": "from-issue",          "skill": "from-issue" },
+    { "name": "spec-generate",       "skill": "spec-generate" },
+    { "name": "spec-review",         "skill": "spec-review" },
+    { "name": "to-issues-atdd",      "skill": "to-issues-atdd" },
+    { "name": "red",                 "skill": "red-cycle" },
+    { "name": "green",               "skill": "green-cycle" },
+    { "name": "atdd-run",            "skill": "atdd-run" },
+    { "name": "review-fidelity",     "skill": "review-fidelity" },
+    { "name": "review-architecture", "skill": "review-architecture" },
+    { "name": "review-intent",       "skill": "review-intent" },
+    { "name": "auto-merge",          "skill": "pr-auto-merge" }
+  ]
+}
