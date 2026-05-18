@@ -39,7 +39,7 @@ Ask, in order. If the answer is unclear, push back; do NOT guess.
 10. **Integration branch pattern.** Default: `atdd/<us-slug>/integration`. Sub-PRs (one per scenario) target this branch; once all are merged, the orchestrator opens a single PR from this branch to `trunk_branch` and stops.
 11. **Auto-merge of sub-PRs.** Default: `enabled`. Knobs:
     - `idle_window_minutes` (default `5`) — bot inactivity before considering review complete.
-    - `max_fix_iterations` (default `3`) — cap on `/fix-pr-comments` cycles per sub-PR.
+    - `max_fix_iterations` (default `3`) — cap on `/apply-pr-feedback` cycles per sub-PR.
     - `watch_timeout_minutes` (default `60`) — wall-clock cap per sub-PR.
     - `merge_method` (default `squash`).
     - `bot_logins` — extra login allowlist beyond GitHub's `user.type == "Bot"` (defaults include `coderabbitai`, `coderabbitai[bot]`, `github-actions[bot]`, `codex`, `codex-bot`).

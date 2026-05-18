@@ -15,7 +15,7 @@ End-to-end driver for the ATDD pipeline. Chains every phase. Stops at two hard h
 1. **Checkpoint #1 — post-spec.** Before any code is written.
 2. **Checkpoint #2 — final integration PR.** When all scenario sub-PRs are merged into the integration branch and the final PR `integration → trunk` is opened.
 
-Every scenario sub-PR in between is handled autonomously by [`pr-auto-merge`](../../execute/pr-auto-merge/SKILL.md): CI watch, bot idle watch, `/fix-pr-comments` on retours (bounded), then auto-merge into the integration branch. No per-scenario human prompt.
+Every scenario sub-PR in between is handled autonomously by [`pr-auto-merge`](../../execute/pr-auto-merge/SKILL.md): CI watch, bot idle watch, `/apply-pr-feedback` on retours (bounded), then auto-merge into the integration branch. No per-scenario human prompt.
 
 ## When to use
 
@@ -69,7 +69,7 @@ For each sub-issue in `issues.json.scenarios` (iterate sequentially — sub-PRs 
    - Mark the PR ready.
    - Watch CI to completion.
    - Watch bot reviewers (CodeRabbit, codex, github-actions, etc.) until an `idle_window_minutes` quiet period has elapsed.
-   - If actionable bot feedback exists, invoke [`fix-pr-comments`](../../../../skills/fix-pr-comments/SKILL.md) (user-level skill), push, and loop. Capped by `max_fix_iterations`.
+   - If actionable bot feedback exists, invoke [`apply-pr-feedback`](../../execute/apply-pr-feedback/SKILL.md) (bundled with this plugin), push, and loop. Capped by `max_fix_iterations`.
    - When CI is green AND no `CHANGES_REQUESTED` AND no actionable bot comments remain: `gh pr merge --squash --delete-branch`.
    - Escalates (comment on PR, leave open) on any timeout / exhausted fix iterations / failing CI it could not repair.
 4. After auto-merge succeeds, move to the next scenario. On escalation, record the PR number in `specs/<us-slug>/escalations.md` and continue with remaining scenarios (do NOT abort the whole pipeline).

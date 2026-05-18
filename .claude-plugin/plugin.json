@@ -1,8 +1,31 @@
 {
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "atdd-pipeline",
   "version": "0.1.0",
-  "description": "Multi-agent ATDD pipeline: impact mapping -> Gherkin -> GitHub issues -> RED/GREEN cycle with parallel reviewers.",
-  "author": "matvei",
+  "description": "Multi-agent ATDD pipeline for Claude Code and Codex. Impact map -> Gherkin -> GitHub Issues -> RED/GREEN with parallel reviewers and autonomous sub-PR merging. Two human gates: spec, and the final PR.",
+  "author": {
+    "name": "Mathieu Piton",
+    "email": "matpiton@protonmail.com",
+    "url": "https://github.com/mpiton"
+  },
+  "homepage": "https://github.com/mpiton/agentic-atdd",
+  "repository": "https://github.com/mpiton/agentic-atdd",
+  "license": "MIT",
+  "keywords": [
+    "atdd",
+    "tdd",
+    "acceptance-testing",
+    "gherkin",
+    "multi-agent",
+    "claude-code",
+    "codex-cli",
+    "workflow",
+    "skills",
+    "agentic",
+    "ai-pairing",
+    "llm-tools"
+  ],
+  "category": "workflow",
   "skills": [
     { "name": "impact-map",          "path": "skills/spec/impact-map/SKILL.md" },
     { "name": "from-issue",          "path": "skills/spec/from-issue/SKILL.md" },
@@ -14,6 +37,7 @@
     { "name": "review-fidelity",     "path": "skills/execute/review-fidelity/SKILL.md" },
     { "name": "review-architecture", "path": "skills/execute/review-architecture/SKILL.md" },
     { "name": "review-intent",       "path": "skills/execute/review-intent/SKILL.md" },
+    { "name": "apply-pr-feedback",   "path": "skills/execute/apply-pr-feedback/SKILL.md" },
     { "name": "pr-auto-merge",       "path": "skills/execute/pr-auto-merge/SKILL.md" },
     { "name": "atdd-run",            "path": "skills/orchestrate/atdd-run/SKILL.md" },
     { "name": "setup-atdd-pipeline", "path": "skills/orchestrate/setup-atdd-pipeline/SKILL.md" }
@@ -31,6 +55,7 @@
     { "name": "review-fidelity",     "skill": "review-fidelity" },
     { "name": "review-architecture", "skill": "review-architecture" },
     { "name": "review-intent",       "skill": "review-intent" },
+    { "name": "apply-pr-feedback",   "skill": "apply-pr-feedback" },
     { "name": "auto-merge",          "skill": "pr-auto-merge" }
   ]
 }

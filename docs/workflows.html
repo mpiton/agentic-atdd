@@ -193,7 +193,7 @@
 
         <div class="step p-merge">
           <div class="cmd">/auto-merge &lt;pr&gt;</div>
-          <div class="what">ready PR · watch CI · idle bot watch · /fix-pr-comments (×3 max) · squash-merge dans integration</div>
+          <div class="what">ready PR · watch CI · idle bot watch · /apply-pr-feedback (×3 max) · squash-merge dans integration</div>
           <div class="out">→ PR scenario merged · branche supprimée · escalation comment si timeout</div>
         </div>
         <div class="arrow">↓</div>
@@ -272,7 +272,7 @@
 
         <div class="step p-merge">
           <div class="cmd">/auto-merge &lt;pr&gt;</div>
-          <div class="what">CI watch · bot idle watch · /fix-pr-comments · squash dans integration</div>
+          <div class="what">CI watch · bot idle watch · /apply-pr-feedback · squash dans integration</div>
         </div>
         <div class="arrow">↓</div>
 
@@ -367,7 +367,7 @@
 
         <div class="step p-merge">
           <div class="cmd">/auto-merge &lt;pr&gt;</div>
-          <div class="what">CI + bots + /fix-pr-comments + squash · skip si tracker=local</div>
+          <div class="what">CI + bots + /apply-pr-feedback + squash · skip si tracker=local</div>
         </div>
         <div class="arrow">↓</div>
 
@@ -402,7 +402,7 @@
     <code>/atdd-run --no-auto-merge &lt;us-slug&gt;</code> &nbsp;désactive l'auto-merge ; rebascule sur l'ancien checkpoint #2 humain par scenario.<br/>
     <code>/atdd-run --sequential &lt;us-slug&gt;</code> &nbsp;reviewers en série (Codex ou budget tokens).<br/>
     <code>/atdd-run --dry-run &lt;us-slug&gt;</code> &nbsp;génère scenarios + montre plan issues sans rien écrire.<br/>
-    <code>/auto-merge &lt;pr&gt;</code> &nbsp;watch + fix-pr-comments + merge en standalone. Refuse si <code>baseRefName</code> = trunk.
+    <code>/auto-merge &lt;pr&gt;</code> &nbsp;watch + apply-pr-feedback + merge en standalone. Refuse si <code>baseRefName</code> = trunk.
   </div>
 
   <div class="footer">

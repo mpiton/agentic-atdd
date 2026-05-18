@@ -14,7 +14,7 @@ You give the pipeline a story (or import a GitHub issue you already wrote). It:
 4. Pushes the spec to GitHub Issues — one parent, one user story, one sub-issue per scenario. Idempotent, so you can rerun without duplicates.
 5. Creates an integration branch (`atdd/<slug>/integration`) off `main`.
 6. For each scenario sub-issue: writes the failing test, runs `review-fidelity`, auto-corrects up to twice, then writes the minimal implementation, runs `review-architecture` and `review-intent` in parallel, auto-corrects up to twice, opens a draft PR targeting the integration branch.
-7. Marks the PR ready, watches CI, watches bot reviewers (CodeRabbit, codex, github-actions, whatever you've wired). When the bots go quiet, if there's actionable feedback it invokes `fix-pr-comments`, pushes, and loops. When CI is green and nothing is outstanding, it squash-merges into the integration branch.
+7. Marks the PR ready, watches CI, watches bot reviewers (CodeRabbit, codex, github-actions, whatever you've wired). When the bots go quiet, if there's actionable feedback it invokes `apply-pr-feedback`, pushes, and loops. When CI is green and nothing is outstanding, it squash-merges into the integration branch.
 8. Repeats for every scenario.
 9. Opens one final PR `integration → main` and stops there. That PR is yours to merge.
 
@@ -22,13 +22,23 @@ Two human gates: the spec, and the final PR. The rest is hands-off.
 
 ## Install
 
-The plugin lives at `~/.claude/plugins/atdd-pipeline/`. Symlink the skills into both harnesses:
+### Claude Code (recommended)
+
+```
+/plugin marketplace add mpiton/agentic-atdd
+/plugin install atdd-pipeline@agentic-atdd
+```
+
+The plugin's skills and slash commands get namespaced under `atdd-pipeline:*`. No clone, no symlink, no shell script. Updates flow through `/plugin update`.
+
+### Manual install (Codex CLI, or Claude Code without the marketplace)
 
 ```bash
+git clone https://github.com/mpiton/agentic-atdd ~/.claude/plugins/atdd-pipeline
 ~/.claude/plugins/atdd-pipeline/scripts/install.sh
 ```
 
-This symlinks every skill folder into `~/.claude/skills/` and (if present) `~/.codex/skills/`. The plugin directory stays the single source of truth — edit `SKILL.md` once, both harnesses pick it up. Restart your CLI to refresh the skill index.
+The script symlinks every skill folder into `~/.claude/skills/` and (when present) `~/.codex/skills/`. Same `SKILL.md` files on both harnesses, single source of truth. Restart the CLI to refresh the skill index.
 
 Per-repo setup is a one-time interview:
 
@@ -36,7 +46,7 @@ Per-repo setup is a one-time interview:
 /setup-atdd-pipeline
 ```
 
-Writes `.atdd-pipeline.json` at the repo root. Auto-merge is on by default, the idle window for bot review is 5 minutes, fix-pr-comments is capped at 3 iterations. Tunable.
+Writes `.atdd-pipeline.json` at the repo root. Auto-merge is on by default, the idle window for bot review is 5 minutes, apply-pr-feedback is capped at 3 iterations. Tunable.
 
 ## Skills
 
@@ -58,7 +68,8 @@ Writes `.atdd-pipeline.json` at the repo root. Auto-merge is on by default, the 
 - [`review-fidelity`](skills/execute/review-fidelity/SKILL.md) — does the test mirror the Gherkin? Structure, semantics, intent.
 - [`review-architecture`](skills/execute/review-architecture/SKILL.md) — placement, naming, conventions, domain responsibilities.
 - [`review-intent`](skills/execute/review-intent/SKILL.md) — does the code do only what the test asks? No hidden side effects, no speculative branches.
-- [`pr-auto-merge`](skills/execute/pr-auto-merge/SKILL.md) — watches CI plus bot reviewers, runs `fix-pr-comments` on actionable feedback, squash-merges into the integration branch. Refuses to operate on PRs whose base is `main` (the final PR is always your call).
+- [`apply-pr-feedback`](skills/execute/apply-pr-feedback/SKILL.md) — fetch every actionable review comment (bot or human) on a PR, apply only the changes asked for, commit and push. Bundled so the plugin has no external skill dependency.
+- [`pr-auto-merge`](skills/execute/pr-auto-merge/SKILL.md) — watches CI plus bot reviewers, runs `apply-pr-feedback` on actionable feedback, squash-merges into the integration branch. Refuses to operate on PRs whose base is `main` (the final PR is always your call).
 
 ### Orchestrator
 
@@ -77,7 +88,8 @@ Writes `.atdd-pipeline.json` at the repo root. Auto-merge is on by default, the 
 | `/to-issues-atdd` | Sync to GitHub Issues + create the integration branch. |
 | `/red <issue>` | Failing test for one scenario. |
 | `/green <issue>` | Minimal implementation + open the draft PR. |
-| `/auto-merge <pr>` | Watch + fix-pr-comments + squash-merge a sub-PR. |
+| `/auto-merge <pr>` | Watch + apply-pr-feedback + squash-merge a sub-PR. |
+| `/apply-pr-feedback [pr]` | Apply every actionable review comment on a PR, commit, push. |
 | `/atdd-run <us-slug>` | Run the whole thing end to end. |
 | `/review-fidelity` · `/review-architecture` · `/review-intent` | Standalone reviewer runs. |
 
@@ -103,7 +115,7 @@ Parallel reviewers (the default on Claude Code via the `Task` tool) fall back to
 
 1. **Small composable skills.** You should be able to delete any one of them and replace it with your own version in an afternoon.
 2. **Two hard human gates.** Post-spec and the final PR. Nothing else asks for your input.
-3. **Bounded auto-correction.** Reviewer loops cap at 2 retries. The auto-merge fix-pr-comments loop caps at 3. Past the cap, the pipeline drops an escalation comment on the issue or PR and moves on.
+3. **Bounded auto-correction.** Reviewer loops cap at 2 retries. The auto-merge apply-pr-feedback loop caps at 3. Past the cap, the pipeline drops an escalation comment on the issue or PR and moves on.
 4. **Integration branch is mandatory.** Sub-PRs target `atdd/<slug>/integration`, never `main`. `pr-auto-merge` refuses to merge PRs whose base is the trunk.
 5. **GitHub Issues is the database.** The spec, the work breakdown, the escalations — all of it lives there. The pipeline reads its own state from `gh` rather than from a sidecar file.
 

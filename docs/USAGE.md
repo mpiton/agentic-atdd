@@ -7,7 +7,9 @@ Three entry paths, depending on what you already have in your hand. Pick the one
 You need:
 
 - `gh` CLI authenticated against the target repo (`gh auth status`).
-- The plugin symlinked into your skill folder (run `~/.claude/plugins/atdd-pipeline/scripts/install.sh` once).
+- The plugin installed. Two paths:
+  - **Claude Code**: `/plugin marketplace add mpiton/agentic-atdd` then `/plugin install atdd-pipeline@agentic-atdd`. Skills get namespaced to `atdd-pipeline:*` and slash commands are picked up automatically.
+  - **Codex CLI or manual**: clone the repo to `~/.claude/plugins/atdd-pipeline/`, run `scripts/install.sh` to symlink the skills into `~/.claude/skills/` and `~/.codex/skills/`.
 - A clean working tree on `main` (the pipeline creates branches off it).
 
 Then, once per repo:
@@ -65,7 +67,7 @@ Now per scenario (or use `/atdd-run` to chain everything below):
 /auto-merge <pr>      # if you're driving manually
 ```
 
-`/auto-merge` watches the draft PR through CI and bot review, runs `fix-pr-comments` if bots flag anything, and squash-merges into the integration branch when it's clean. It refuses to merge anything whose base is `main`.
+`/auto-merge` watches the draft PR through CI and bot review, runs `apply-pr-feedback` if bots flag anything, and squash-merges into the integration branch when it's clean. It refuses to merge anything whose base is `main`.
 
 When every scenario is in, the orchestrator opens the final PR from the integration branch to `main` and stops. That PR is the one you review and merge yourself.
 
@@ -166,9 +168,9 @@ In greenfield, expect `spec-generate` to interview you heavily — there's no PR
 
 `pr-auto-merge` escalates in three cases:
 
-1. CI keeps failing after the fix-pr-comments cap (default 3 iterations).
+1. CI keeps failing after the apply-pr-feedback cap (default 3 iterations).
 2. The bot idle window never closes within `watch_timeout_minutes` (default 60).
-3. A reviewer has a `CHANGES_REQUESTED` review that `fix-pr-comments` couldn't address.
+3. A reviewer has a `CHANGES_REQUESTED` review that `apply-pr-feedback` couldn't address.
 
 When it gives up, it posts a comment on the PR with the timeline and leaves the PR open. The orchestrator records the PR number in `specs/<us-slug>/escalations.md` and moves on to the next scenario. Read the escalation, fix it by hand, then trigger `/auto-merge <pr>` again — it resumes from where it stopped.
 

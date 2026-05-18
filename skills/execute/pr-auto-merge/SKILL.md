@@ -1,6 +1,6 @@
 ---
 name: pr-auto-merge
-description: Watch a sub-PR through bot review + CI, run /fix-pr-comments on actionable feedback, then auto-merge into its base branch. Refuses to act when base is the trunk (main/master). Use after green-cycle opens a draft PR, or when the user types /auto-merge <pr-number>.
+description: Watch a sub-PR through bot review + CI, run /apply-pr-feedback on actionable feedback, then auto-merge into its base branch. Refuses to act when base is the trunk (main/master). Use after green-cycle opens a draft PR, or when the user types /auto-merge <pr-number>.
 phase: 4-green
 parallel: false
 inputs: [pr-number]
@@ -24,7 +24,7 @@ Autonomous watcher + merger for ATDD scenario sub-PRs. Replaces the per-scenario
 - `<pr-number>` — GitHub PR number.
 - Optional flags:
   - `--idle-window <minutes>` — minutes with no bot activity before considering review complete (default `5`).
-  - `--max-fix-iterations <n>` — cap on `/fix-pr-comments` invocations (default `3`).
+  - `--max-fix-iterations <n>` — cap on `/apply-pr-feedback` invocations (default `3`).
   - `--merge-method <squash|merge|rebase>` — default `squash`.
   - `--watch-timeout <minutes>` — hard wall-clock cap for the whole loop (default `60`).
 
@@ -55,7 +55,7 @@ gh pr checks <pr-number> --watch --fail-fast=false
 ```
 
 - **All green** → proceed to step 3.
-- **Any failed/cancelled** → run `/fix-pr-comments` style triage: fetch the failing job logs (`gh run view <run-id> --log-failed`), attempt one targeted fix, push, restart step 2. This counts against `--max-fix-iterations`. Exceeded → escalate (step 6).
+- **Any failed/cancelled** → run `/apply-pr-feedback` style triage: fetch the failing job logs (`gh run view <run-id> --log-failed`), attempt one targeted fix, push, restart step 2. This counts against `--max-fix-iterations`. Exceeded → escalate (step 6).
 
 ### 3. Bot idle watch
 
@@ -84,11 +84,11 @@ After idle exit, compute:
 If `has_changes_requested == false` AND `actionable_comments == 0` AND CI is green → step 5 (merge).
 Otherwise → step 4a.
 
-#### 4a. Invoke /fix-pr-comments
+#### 4a. Invoke /apply-pr-feedback
 
 Increment the fix iteration counter. If it exceeds `--max-fix-iterations` → escalate (step 6).
 
-Invoke the `fix-pr-comments` skill against this PR. After it pushes, return to step 2 (CI watch).
+Invoke the bundled [`apply-pr-feedback`](../apply-pr-feedback/SKILL.md) skill against this PR. After it pushes, return to step 2 (CI watch).
 
 ### 5. Merge
 
@@ -136,13 +136,13 @@ CLI flags override file values; file values override built-in defaults.
 
 - Do NOT merge a PR whose `baseRefName` matches `trunk_branch`. This guard is non-negotiable.
 - Do NOT squash a CHANGES_REQUESTED review by force-merging. The classification step is the gate.
-- Do NOT run `/fix-pr-comments` on a PR that has no actionable comments — wastes iterations.
+- Do NOT run `/apply-pr-feedback` on a PR that has no actionable comments — wastes iterations.
 - Do NOT silence failing CI by disabling required checks. Fix the underlying cause or escalate.
 - Do NOT keep polling past `watch_timeout`. Escalate so a human can investigate stuck bots.
 
 ## Composition
 
-- `fix-pr-comments` (user-level skill at `~/.claude/skills/fix-pr-comments/`) handles the comment-application loop. This skill orchestrates it.
+- [`apply-pr-feedback`](../apply-pr-feedback/SKILL.md) (bundled with this plugin) handles the comment-application loop. This skill orchestrates it. Zero external dependency.
 - `green-cycle` opens the PR; this skill takes over from there when `auto_merge.enabled == true`.
 - `atdd-run` chains `green-cycle` → `pr-auto-merge` per scenario, then opens the final integration→trunk PR and stops.
 

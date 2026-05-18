@@ -1,0 +1,39 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "agentic-atdd",
+  "description": "Single-plugin marketplace for atdd-pipeline. Multi-agent ATDD workflow for Claude Code and Codex.",
+  "owner": {
+    "name": "Mathieu Piton",
+    "email": "matpiton@protonmail.com",
+    "url": "https://github.com/mpiton"
+  },
+  "version": "0.1.0",
+  "plugins": [
+    {
+      "name": "atdd-pipeline",
+      "source": "./",
+      "description": "Multi-agent ATDD pipeline: impact map -> Gherkin -> GitHub Issues -> RED/GREEN with parallel reviewers and autonomous sub-PR merging. Two human gates: spec, and the final PR.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Mathieu Piton",
+        "url": "https://github.com/mpiton"
+      },
+      "homepage": "https://github.com/mpiton/agentic-atdd",
+      "repository": "https://github.com/mpiton/agentic-atdd",
+      "license": "MIT",
+      "category": "workflow",
+      "keywords": [
+        "atdd",
+        "tdd",
+        "gherkin",
+        "multi-agent",
+        "claude-code",
+        "codex-cli",
+        "workflow",
+        "agentic",
+        "ai-pairing"
+      ],
+      "strict": false
+    }
+  ]
+}

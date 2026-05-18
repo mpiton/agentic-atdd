@@ -79,7 +79,7 @@ Stop when both report `OK`, or when the counter reaches 2.
 If `.atdd-pipeline.json:auto_merge.enabled == true` (default):
 
 - Hand off the PR number to [`pr-auto-merge`](../pr-auto-merge/SKILL.md). No human prompt at this point.
-- `pr-auto-merge` will mark the PR ready, watch CI + bots, invoke `/fix-pr-comments` on retours (bounded), and merge into the integration branch on success.
+- `pr-auto-merge` will mark the PR ready, watch CI + bots, invoke `/apply-pr-feedback` on retours (bounded), and merge into the integration branch on success.
 
 If `auto_merge.enabled == false`, fall back to a human checkpoint:
 
