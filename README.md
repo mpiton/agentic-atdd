@@ -1,5 +1,7 @@
 # agentic-atdd
 
+![Pipeline overview](docs/assets/pipeline-overview.png)
+
 ATDD pipeline for Claude Code and Codex. You start with a user story, you end with a PR sitting on `main` waiting for your review. Everything in between runs without you.
 
 The skills are small. You can read any one of them in under a minute, fork it, swap it out. No monolith, no framework lock-in.

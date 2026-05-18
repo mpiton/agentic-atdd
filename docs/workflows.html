@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ATDD pipeline — sequences de commandes</title>
+<title>ATDD pipeline — command sequences</title>
 <style>
   :root {
     --bg:        #0e1116;
@@ -121,12 +121,12 @@
 </style>
 </head>
 <body>
-  <h1>ATDD pipeline — séquences de commandes</h1>
+  <h1>ATDD pipeline — command sequences</h1>
   <p>
-    Trois cas d'entrée selon ce que tu as déjà sous la main. Chaque colonne lit de
-    haut en bas. Les commandes en couleur sont des slash commands du plugin
-    <code>atdd-pipeline</code>. Les <span style="color:var(--gate)">checkpoints</span>
-    en pointillé orange sont les deux portes humaines.
+    Three entry paths depending on what you already have. Each column reads top
+    to bottom. Colored commands are slash commands from the
+    <code>atdd-pipeline</code> plugin. The dashed orange
+    <span style="color:var(--gate)">checkpoints</span> are the two human gates.
   </p>
 
   <div class="grid">
@@ -134,207 +134,207 @@
     <!-- ============= CASE A ============= -->
     <section class="case">
       <header>
-        <h2>Cas A · via issue GitHub existante</h2>
-        <div class="sub">L'issue existe déjà (prose ou Gherkin partiel). On l'importe sans la dupliquer.</div>
+        <h2>Case A · existing GitHub issue</h2>
+        <div class="sub">The issue already exists (prose or partial Gherkin). Imported without duplication.</div>
       </header>
 
       <div class="chain">
         <div class="step p-input">
           <div class="cmd">/setup-atdd-pipeline</div>
-          <div class="what">une fois par repo — config tracker / paths / mode reviewer</div>
-          <div class="out">→ .atdd-pipeline.json (root du repo)</div>
+          <div class="what">once per repo — tracker / paths / reviewer mode config</div>
+          <div class="out">→ .atdd-pipeline.json (repo root)</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-input">
           <div class="cmd">/from-issue 130</div>
-          <div class="what">fetch gh issue, parse Goal/Acceptance, interview gaps, tag l'issue</div>
-          <div class="out">→ specs/&lt;slug&gt;/context.md, gh label "atdd,us/&lt;slug&gt;,level/&lt;x&gt;"</div>
+          <div class="what">fetch gh issue, parse Goal/Acceptance, interview gaps, tag the issue</div>
+          <div class="out">→ specs/&lt;slug&gt;/context.md, gh labels "atdd,us/&lt;slug&gt;,level/&lt;x&gt;"</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-spec">
           <div class="cmd">/spec-generate</div>
-          <div class="what">interview ambigus, génère Gherkin par règle métier</div>
+          <div class="what">interview ambiguities, generate Gherkin per business rule</div>
           <div class="out">→ specs/&lt;slug&gt;/R-*.feature</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-spec">
           <div class="cmd">/spec-review</div>
-          <div class="what">branches / cohérence / trous / triangulation</div>
+          <div class="what">branches / coherence / gaps / triangulation</div>
           <div class="out">→ specs/&lt;slug&gt;/review.md (VERDICT: OK | REGENERATE)</div>
         </div>
         <div class="arrow">↓</div>
 
-        <div class="gate">Checkpoint #1 — humain<br/>OK → continue · REGEN &lt;raison&gt; → /spec-generate</div>
+        <div class="gate">Checkpoint #1 — human<br/>OK → continue · REGEN &lt;reason&gt; → /spec-generate</div>
         <div class="arrow">↓</div>
 
         <div class="step p-sync">
           <div class="cmd">/to-issues-atdd</div>
-          <div class="what">crée sub-issues + provisionne <code>atdd/&lt;slug&gt;/integration</code> (base des sub-PRs)</div>
-          <div class="out">→ specs/&lt;slug&gt;/issues.json, gh sub-issues #150…, branche integration</div>
+          <div class="what">creates sub-issues + provisions <code>atdd/&lt;slug&gt;/integration</code> (base for sub-PRs)</div>
+          <div class="out">→ specs/&lt;slug&gt;/issues.json, gh sub-issues #150…, integration branch</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-red">
           <div class="cmd">/red &lt;sub-issue&gt;</div>
-          <div class="what">gen test au bon niveau, review-fidelity, auto-corr ×2</div>
-          <div class="out">→ branche atdd/&lt;slug&gt;/scenario-&lt;N&gt; · commit RED</div>
+          <div class="what">generate test at the right level, review-fidelity, auto-correct ×2</div>
+          <div class="out">→ branch atdd/&lt;slug&gt;/scenario-&lt;N&gt; · RED commit</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-green">
           <div class="cmd">/green &lt;sub-issue&gt;</div>
-          <div class="what">impl YAGNI, review-archi ∥ review-intent · draft PR → <b>integration</b></div>
-          <div class="out">→ commit GREEN · draft PR base=integration (jamais main)</div>
+          <div class="what">YAGNI impl, review-architecture ∥ review-intent · draft PR → <b>integration</b></div>
+          <div class="out">→ GREEN commit · draft PR base=integration (never main)</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-merge">
           <div class="cmd">/auto-merge &lt;pr&gt;</div>
-          <div class="what">ready PR · watch CI · idle bot watch · /apply-pr-feedback (×3 max) · squash-merge dans integration</div>
-          <div class="out">→ PR scenario merged · branche supprimée · escalation comment si timeout</div>
+          <div class="what">mark ready · watch CI · idle bot watch · /apply-pr-feedback (×3 max) · squash-merge into integration</div>
+          <div class="out">→ scenario PR merged · branch deleted · escalation comment on timeout</div>
         </div>
         <div class="arrow">↓</div>
 
-        <div class="loop">repeat /red → /green → /auto-merge pour chaque sub-issue (sequentiel, même base)</div>
+        <div class="loop">repeat /red → /green → /auto-merge per sub-issue (sequential, same base)</div>
         <div class="arrow">↓</div>
 
         <div class="step p-merge">
-          <div class="cmd">PR finale integration → main</div>
-          <div class="what">une fois tous les scenarios merged dans integration, ouverture de la PR vers trunk</div>
+          <div class="cmd">final PR integration → main</div>
+          <div class="what">once every scenario is merged into integration, the trunk PR opens</div>
           <div class="out">→ gh PR #&lt;N&gt; · labels atdd, us/&lt;slug&gt;, integration</div>
         </div>
         <div class="arrow">↓</div>
 
-        <div class="gate">Checkpoint #2 — humain<br/>Review &amp; merge la PR vers main (auto-merge refuse cette base)</div>
+        <div class="gate">Checkpoint #2 — human<br/>Review &amp; merge the trunk PR (auto-merge refuses this base)</div>
       </div>
     </section>
 
     <!-- ============= CASE B ============= -->
     <section class="case">
       <header>
-        <h2>Cas B · sans issue GitHub (PRD/spec/archi dispo)</h2>
-        <div class="sub">Tu démarres une feature. Tu as PRD, ADRs, archi clairs. Pas d'issue tracker pré-rempli.</div>
+        <h2>Case B · no GitHub issue (PRD/spec/architecture in hand)</h2>
+        <div class="sub">Starting a feature. PRD, ADRs and architecture are clear. No tracker entry yet.</div>
       </header>
 
       <div class="chain">
         <div class="step p-input">
           <div class="cmd">/setup-atdd-pipeline</div>
-          <div class="what">une fois par repo</div>
+          <div class="what">once per repo</div>
           <div class="out">→ .atdd-pipeline.json</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-input">
           <div class="cmd">/impact-map</div>
-          <div class="what">interview : actor / goal / action / user story / business rules R-NN</div>
-          <div class="out">→ specs/&lt;slug&gt;/context.md (lit PRD.md + ADRs comme références)</div>
+          <div class="what">interview: actor / goal / action / user story / business rules R-NN</div>
+          <div class="out">→ specs/&lt;slug&gt;/context.md (reads PRD.md + ADRs as references)</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-spec">
           <div class="cmd">/spec-generate</div>
-          <div class="what">interview ambigus, Gherkin avec données concrètes du PRD</div>
+          <div class="what">interview ambiguities, Gherkin with concrete PRD data</div>
           <div class="out">→ specs/&lt;slug&gt;/R-*.feature</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-spec">
           <div class="cmd">/spec-review</div>
-          <div class="what">branches / cohérence / trous / triangulation</div>
+          <div class="what">branches / coherence / gaps / triangulation</div>
           <div class="out">→ review.md</div>
         </div>
         <div class="arrow">↓</div>
 
-        <div class="gate">Checkpoint #1 — humain</div>
+        <div class="gate">Checkpoint #1 — human</div>
         <div class="arrow">↓</div>
 
         <div class="step p-sync">
           <div class="cmd">/to-issues-atdd</div>
-          <div class="what">parent + US + scenarios + branche integration (base des sub-PRs)</div>
+          <div class="what">parent + US + scenarios + integration branch (base for sub-PRs)</div>
           <div class="out">→ issues.json, gh #1001 parent, #1002 US, #1010+ scenarios</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-red">
           <div class="cmd">/red &lt;N&gt;</div>
-          <div class="what">test RED + review-fidelity</div>
+          <div class="what">RED test + review-fidelity</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-green">
           <div class="cmd">/green &lt;N&gt;</div>
-          <div class="what">impl GREEN + review-archi ∥ review-intent · draft PR → integration</div>
+          <div class="what">GREEN impl + review-architecture ∥ review-intent · draft PR → integration</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-merge">
           <div class="cmd">/auto-merge &lt;pr&gt;</div>
-          <div class="what">CI watch · bot idle watch · /apply-pr-feedback · squash dans integration</div>
+          <div class="what">CI watch · bot idle watch · /apply-pr-feedback · squash into integration</div>
         </div>
         <div class="arrow">↓</div>
 
-        <div class="loop">repeat /red → /green → /auto-merge pour chaque scenario</div>
+        <div class="loop">repeat /red → /green → /auto-merge per scenario</div>
         <div class="arrow">↓</div>
 
         <div class="step p-review" style="--phase: var(--muted)">
           <div class="cmd">improve-codebase-architecture (mattpocock)</div>
-          <div class="what">entre scenarios, jamais pendant un cycle</div>
-          <div class="out">→ ADR mis à jour, refactors profonds si patterns émergents</div>
+          <div class="what">between scenarios, never during a cycle</div>
+          <div class="out">→ ADR updated, deeper refactors if patterns emerge</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-merge">
-          <div class="cmd">PR finale integration → main</div>
-          <div class="what">ouverte automatiquement quand integration contient tous les scenarios</div>
+          <div class="cmd">final PR integration → main</div>
+          <div class="what">opens automatically once integration carries every scenario</div>
         </div>
         <div class="arrow">↓</div>
 
-        <div class="gate">Checkpoint #2 — humain<br/>review &amp; merge vers main</div>
+        <div class="gate">Checkpoint #2 — human<br/>review &amp; merge into main</div>
       </div>
     </section>
 
     <!-- ============= CASE C ============= -->
     <section class="case">
       <header>
-        <h2>Cas C · greenfield (pas de PRD ni archi)</h2>
-        <div class="sub">Projet neuf ou exploration. Pas de PRD, pas d'ADR, pas de shared language. Tout à construire.</div>
+        <h2>Case C · greenfield (no PRD, no architecture)</h2>
+        <div class="sub">New project or exploration. No PRD, no ADRs, no shared language. Everything to bootstrap.</div>
       </header>
 
       <div class="chain">
         <div class="step p-input">
           <div class="cmd">/setup-atdd-pipeline</div>
-          <div class="what">tracker=local possible si pas de repo GitHub encore</div>
+          <div class="what">tracker=local works if no GitHub repo yet</div>
           <div class="out">→ .atdd-pipeline.json</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-input" style="--phase: var(--muted)">
           <div class="cmd">grill-with-docs (mattpocock)</div>
-          <div class="what">bootstrap CONTEXT.md (shared language) + premiers ADRs</div>
+          <div class="what">bootstrap CONTEXT.md (shared language) + first ADRs</div>
           <div class="out">→ CONTEXT.md, docs/adr/0001-*.md</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-input" style="--phase: var(--muted)">
-          <div class="cmd">to-prd (mattpocock) — optionnel</div>
-          <div class="what">si tu veux un PRD formel avant de capturer les US</div>
+          <div class="cmd">to-prd (mattpocock) — optional</div>
+          <div class="what">if you want a formal PRD before capturing user stories</div>
           <div class="out">→ PRD.md</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-input">
           <div class="cmd">/impact-map</div>
-          <div class="what">capture première US en s'appuyant sur CONTEXT.md frais</div>
+          <div class="what">capture first user story leaning on the fresh CONTEXT.md</div>
           <div class="out">→ specs/&lt;slug&gt;/context.md</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-spec">
           <div class="cmd">/spec-generate</div>
-          <div class="what">interview lourd (peu de contexte établi)</div>
+          <div class="what">heavy interview (little established context)</div>
           <div class="out">→ R-*.feature</div>
         </div>
         <div class="arrow">↓</div>
@@ -344,42 +344,42 @@
         </div>
         <div class="arrow">↓</div>
 
-        <div class="gate">Checkpoint #1 — humain</div>
+        <div class="gate">Checkpoint #1 — human</div>
         <div class="arrow">↓</div>
 
         <div class="step p-sync">
           <div class="cmd">/to-issues-atdd</div>
-          <div class="what">tracker:local → .atdd/issues/*.md si pas encore de GitHub · sinon provisionne aussi integration branch</div>
+          <div class="what">tracker=local → .atdd/issues/*.md if no GitHub yet · otherwise provisions the integration branch too</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-red">
           <div class="cmd">/red &lt;id&gt;</div>
-          <div class="what">tracer-bullet : 1ère scenario nominal de la 1ère US</div>
+          <div class="what">tracer bullet: first nominal scenario of the first US</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-green">
           <div class="cmd">/green &lt;id&gt;</div>
-          <div class="what">impl + draft PR → integration (si tracker=github)</div>
+          <div class="what">impl + draft PR → integration (when tracker=github)</div>
         </div>
         <div class="arrow">↓</div>
 
         <div class="step p-merge">
           <div class="cmd">/auto-merge &lt;pr&gt;</div>
-          <div class="what">CI + bots + /apply-pr-feedback + squash · skip si tracker=local</div>
+          <div class="what">CI + bots + /apply-pr-feedback + squash · skipped when tracker=local</div>
         </div>
         <div class="arrow">↓</div>
 
-        <div class="loop">repeat scenarios · revisit CONTEXT.md souvent</div>
+        <div class="loop">repeat scenarios · revisit CONTEXT.md often</div>
         <div class="arrow">↓</div>
 
         <div class="step p-merge">
-          <div class="cmd">PR finale integration → main</div>
+          <div class="cmd">final PR integration → main</div>
         </div>
         <div class="arrow">↓</div>
 
-        <div class="gate">Checkpoint #2 — humain<br/>seul stop manuel du pipeline</div>
+        <div class="gate">Checkpoint #2 — human<br/>the only manual stop in the pipeline</div>
       </div>
     </section>
 
@@ -391,23 +391,23 @@
     <span class="swatch"><span class="dot" style="background:var(--sync)"></span>SYNC / issues</span>
     <span class="swatch"><span class="dot" style="background:var(--red)"></span>RED / test</span>
     <span class="swatch"><span class="dot" style="background:var(--green)"></span>GREEN / impl</span>
-    <span class="swatch"><span class="dot" style="background:var(--merge)"></span>AUTO-MERGE / PR finale</span>
-    <span class="swatch"><span class="dot" style="background:var(--gate); opacity:.8"></span>Checkpoint humain</span>
+    <span class="swatch"><span class="dot" style="background:var(--merge)"></span>AUTO-MERGE / final PR</span>
+    <span class="swatch"><span class="dot" style="background:var(--gate); opacity:.8"></span>Human checkpoint</span>
   </div>
 
   <div class="pre">
-    <strong>Raccourci — tout en un :</strong><br/>
-    <code>/atdd-run &lt;us-slug&gt;</code> &nbsp;chaîne impact-map → spec → checkpoint #1 → to-issues-atdd (+ integration branch) → pour chaque scenario : red → green → <b>auto-merge dans integration</b>, puis ouvre la PR finale integration → main et stoppe sur le checkpoint #2.<br/>
-    <code>/atdd-run --from-stage auto-merge &lt;us-slug&gt;</code> &nbsp;reprend au watch des sub-PRs déjà ouvertes.<br/>
-    <code>/atdd-run --no-auto-merge &lt;us-slug&gt;</code> &nbsp;désactive l'auto-merge ; rebascule sur l'ancien checkpoint #2 humain par scenario.<br/>
-    <code>/atdd-run --sequential &lt;us-slug&gt;</code> &nbsp;reviewers en série (Codex ou budget tokens).<br/>
-    <code>/atdd-run --dry-run &lt;us-slug&gt;</code> &nbsp;génère scenarios + montre plan issues sans rien écrire.<br/>
-    <code>/auto-merge &lt;pr&gt;</code> &nbsp;watch + apply-pr-feedback + merge en standalone. Refuse si <code>baseRefName</code> = trunk.
+    <strong>Shortcut, one command:</strong><br/>
+    <code>/atdd-run &lt;us-slug&gt;</code> &nbsp;chains impact-map → spec → checkpoint #1 → to-issues-atdd (+ integration branch) → for each scenario: red → green → <b>auto-merge into integration</b>, then opens the final integration → main PR and stops on checkpoint #2.<br/>
+    <code>/atdd-run --from-stage auto-merge &lt;us-slug&gt;</code> &nbsp;resumes watching sub-PRs that are already open.<br/>
+    <code>/atdd-run --no-auto-merge &lt;us-slug&gt;</code> &nbsp;disables auto-merge; falls back to the legacy per-scenario human checkpoint #2.<br/>
+    <code>/atdd-run --sequential &lt;us-slug&gt;</code> &nbsp;reviewers in series (Codex or low-token budget).<br/>
+    <code>/atdd-run --dry-run &lt;us-slug&gt;</code> &nbsp;generates scenarios + shows the issue plan without writing anything.<br/>
+    <code>/auto-merge &lt;pr&gt;</code> &nbsp;watch + apply-pr-feedback + merge standalone. Refuses when <code>baseRefName</code> = trunk.
   </div>
 
   <div class="footer">
-    Source : <code>~/.claude/plugins/atdd-pipeline/</code> · skills symlinkés dans
-    <code>~/.claude/skills/</code> et <code>~/.codex/skills/</code>.
+    Source: <code>~/.claude/plugins/atdd-pipeline/</code> · skills symlinked into
+    <code>~/.claude/skills/</code> and <code>~/.codex/skills/</code>.
   </div>
 </body>
 </html>

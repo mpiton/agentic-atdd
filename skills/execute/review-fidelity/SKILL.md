@@ -10,7 +10,7 @@ escalation: none
 
 # review-fidelity
 
-Reviewer "fidélité du test" from Phase 4a of the diagram. Read-only critique of a single test against the Gherkin scenario it claims to implement.
+Test-fidelity reviewer for Phase 4a. Read-only critique of a single test against the Gherkin scenario it claims to implement.
 
 ## When to use
 
