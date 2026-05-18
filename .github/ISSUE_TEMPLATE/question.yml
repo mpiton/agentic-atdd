@@ -1,18 +1,18 @@
 name: Question
-description: Ask a question about the project
-title: "[Question]: "
+description: A usage question. For design conversations, prefer Discussions.
+title: "[q] "
 labels: ["question"]
 body:
   - type: markdown
     attributes:
       value: |
-        Before asking, please check the existing issues, discussions, and documentation.
+        Quick check first: the [README](../../README.md) and [USAGE](../../docs/USAGE.md) cover most of the common cases. If you've already looked there, great — file away.
 
   - type: textarea
     id: question
     attributes:
-      label: Your Question
-      description: What would you like to know?
+      label: Question
+      description: What are you trying to do? What did you try?
     validations:
       required: true
 
@@ -20,4 +20,4 @@ body:
     id: context
     attributes:
       label: Context
-      description: Any context that helps us understand your question (version, environment, use case).
+      description: Plugin version, harness (Claude Code / Codex), and the bit of your setup that's relevant.

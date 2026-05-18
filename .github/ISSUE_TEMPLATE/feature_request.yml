@@ -1,35 +1,51 @@
-name: Feature Request
-description: Suggest an idea or improvement
-title: "[Feature]: "
+name: Feature request
+description: A change to the pipeline's behaviour, a new skill, or a new flag.
+title: "[feat] "
 labels: ["enhancement", "triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for suggesting a feature. Describe your idea below.
+        Lead with the problem. If you already have a fix in mind, sketch it at the end so the design discussion stays open.
 
   - type: textarea
     id: problem
     attributes:
-      label: Problem Statement
-      description: What problem does this feature solve? Is it related to a frustration?
-      placeholder: I'm always frustrated when...
+      label: Problem
+      description: What hurts today? Concrete situation, not abstract.
+      placeholder: |
+        When I run `/atdd-run` on a repo with 12 scenarios, the pipeline serializes the sub-PRs. Each one waits on CI for ~3 minutes. Total wall-clock is over half an hour even when half the PRs would be merge-clean on first try.
     validations:
       required: true
 
   - type: textarea
-    id: solution
+    id: proposal
     attributes:
-      label: Proposed Solution
-      description: Describe the solution you'd like.
+      label: Proposed change
+      description: |
+        What would solve the problem? Be specific about which skill is affected and which knobs would change.
     validations:
       required: true
 
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternatives Considered
-      description: Describe any alternative solutions or features you've considered.
+      label: Alternatives you considered
+      description: What else could solve this? Why did you discard those?
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - New skill
+        - Change to an existing skill's prompt
+        - New flag on a slash command
+        - New artifact on disk
+        - Docs only
+        - Other
+    validations:
+      required: true
 
   - type: dropdown
     id: importance
@@ -37,13 +53,13 @@ body:
       label: Importance
       options:
         - Nice to have
-        - Important
-        - Critical
+        - Would unblock me
+        - Critical for my workflow
     validations:
       required: true
 
   - type: textarea
     id: context
     attributes:
-      label: Additional Context
-      description: Any mockups, screenshots, or links to related issues.
+      label: Anything else
+      description: Links, prior art, screenshots, related issues you searched.

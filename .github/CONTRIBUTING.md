@@ -1,60 +1,74 @@
-# Contributing to agentic-atdd
+# Contributing
 
-First off, thanks for considering contributing! Every contribution matters, whether it's a bug report, a feature request, or a pull request.
+This plugin is pre-1.0. Skill names, frontmatter, and on-disk artifact paths can still change. If you want to contribute, that's the lens to keep in mind: clarity over backwards compatibility for now.
 
-## How to Contribute
+## Reporting bugs
 
-### Reporting Bugs
+Open an issue with the **Bug Report** template. Two things help most:
 
-1. Check if the bug has already been reported in [Issues](https://github.com/mpiton/agentic-atdd/issues)
-2. If not, create a new issue using the **Bug Report** template
-3. Include steps to reproduce, expected behavior, and actual behavior
+1. The exact slash command you ran and the args.
+2. The state on disk after the failure (`specs/<us-slug>/` listing, `.atdd-pipeline.json`, any escalation file).
 
-### Suggesting Features
+If the bug involves `pr-auto-merge`, attach `specs/<us-slug>/.cycles/<n>/auto-merge.log`. That's where the CI/bot watch timeline lives.
 
-1. Check existing [Feature Requests](https://github.com/mpiton/agentic-atdd/issues?q=label%3Aenhancement)
-2. Open a new issue using the **Feature Request** template
-3. Describe the problem and your proposed solution
+## Suggesting changes
 
-### Pull Requests
+Open a **Feature Request**. Lead with the problem, not the solution. If you already have a fix in mind, sketch it at the end so the design discussion stays open.
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feat/your-feature`)
-3. Make your changes following the project's coding standards
-4. Write or update tests as needed
-5. Commit using [Conventional Commits](https://www.conventionalcommits.org/) format
-6. Push to your fork and open a Pull Request
+Before opening anything, search [existing issues](https://github.com/mpiton/agentic-atdd/issues?q=is%3Aissue) — the pre-1.0 list moves fast.
 
-### Commit Message Format
+## Pull requests
 
-```
-<type>(<scope>): <description>
+Workflow:
 
-[optional body]
-```
+1. Fork, branch off `main`. Use `feat/...`, `fix/...`, `docs/...`, `refactor/...` as a prefix.
+2. Change one skill (or one concern) per PR. Smaller is easier to merge.
+3. If you touch a reviewer skill (`review-fidelity`, `review-architecture`, `review-intent`), add or update a fixture in `tests/fixtures/` and link to the regression case in the PR body.
+4. Commit using [Conventional Commits](https://www.conventionalcommits.org). The `chore:` / `feat:` / `fix:` / `docs:` / `refactor:` / `test:` / `perf:` / `ci:` set is enough.
+5. Open the PR. Fill in the template. CI runs the fixtures.
 
-Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `ci`
+If the PR adds a new skill, update three places:
 
-### Development Setup
+- `README.md` — the skill table.
+- `.claude-plugin/plugin.json` — `skills` and `commands`.
+- `docs/USAGE.md` — only if the skill changes a user-facing flow.
 
-<!-- TODO: Add project-specific setup instructions -->
+Anything else is plumbing and lives in the SKILL.md itself.
+
+## Local setup
 
 ```bash
-# Clone the repo
 git clone https://github.com/mpiton/agentic-atdd.git
 cd agentic-atdd
-
-# Install dependencies
-# TODO: Add install commands
-
-# Run tests
-# TODO: Add test commands
 ```
 
-## Code of Conduct
+The plugin has no runtime install. To test it against a real project:
 
-This project follows a [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you agree to uphold it.
+```bash
+# Symlink into both harnesses (Claude Code + Codex)
+./scripts/install.sh
+```
 
-## Questions?
+The script symlinks every skill folder into `~/.claude/skills/` and `~/.codex/skills/`, so a local edit to `SKILL.md` propagates immediately. Restart your CLI to refresh the skill index.
 
-Open a [Discussion](https://github.com/mpiton/agentic-atdd/discussions) or file an issue using the **Question** template.
+## Testing reviewer prompts
+
+Reviewer skills are prompts. Their regressions are hard to catch without fixtures. The contract:
+
+```
+tests/fixtures/<reviewer>/<case>/
+  ├── scenario.feature          # input
+  ├── test.ts (or diff.patch)   # input
+  ├── context.md                # optional
+  └── expected.md               # ground-truth verdict (OK | REGENERATE) + reasons
+```
+
+`tests/README.md` documents how to replay them. If you change a reviewer prompt, run the existing fixtures and add a new one for whatever case motivated the change.
+
+## Code of conduct
+
+Be civil, be specific, be brief. If you wouldn't say it in a code review out loud, don't write it in a comment.
+
+## Questions
+
+Open a [Discussion](https://github.com/mpiton/agentic-atdd/discussions) for usage questions, design conversations, or "is this the right tool for X" before filing an issue.

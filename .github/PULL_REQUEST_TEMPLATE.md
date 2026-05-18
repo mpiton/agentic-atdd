@@ -1,32 +1,28 @@
-## Summary
+## What does this change
 
-<!-- Brief description of the changes -->
+<!-- One or two sentences. Lead with the user-visible effect, not the implementation. -->
 
-## Changes
+## Why
 
-- 
+<!-- The problem this solves, or the gap it fills. Link issues with "Closes #123" or "Refs #456". -->
 
-## Related Issues
+## Type
 
-<!-- Link to related issues: Closes #123, Fixes #456 -->
-
-## Type of Change
-
-- [ ] Bug fix (non-breaking change that fixes an issue)
-- [ ] New feature (non-breaking change that adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to change)
-- [ ] Documentation update
-- [ ] Refactoring (no functional changes)
-- [ ] CI/CD or tooling changes
+- [ ] New skill
+- [ ] Skill prompt change (behavioural)
+- [ ] Bug fix
+- [ ] Docs only
+- [ ] Refactor / plumbing
+- [ ] Breaking change to a skill's frontmatter or on-disk artifacts
 
 ## Checklist
 
-- [ ] My code follows the project's style guidelines
-- [ ] I have performed a self-review of my code
-- [ ] I have added tests that prove my fix/feature works
-- [ ] New and existing tests pass locally
-- [ ] I have updated the documentation accordingly
+- [ ] If a new skill: registered in `.claude-plugin/plugin.json` and listed in `README.md`.
+- [ ] If a reviewer prompt changed: fixtures under `tests/fixtures/<reviewer>/` updated or extended.
+- [ ] If a user-facing flow changed: `docs/USAGE.md` updated.
+- [ ] `CHANGELOG.md` carries an entry under `## [Unreleased]`.
+- [ ] Commit messages follow Conventional Commits.
 
-## Screenshots (if applicable)
+## Notes
 
-<!-- Add screenshots to help explain your changes -->
+<!-- Anything reviewers should know: trade-offs you made, alternatives you considered, follow-ups. -->

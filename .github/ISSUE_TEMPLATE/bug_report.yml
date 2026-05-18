@@ -1,75 +1,97 @@
-name: Bug Report
-description: Report a bug or unexpected behavior
-title: "[Bug]: "
+name: Bug report
+description: Something the plugin does that it shouldn't, or doesn't do that it should.
+title: "[bug] "
 labels: ["bug", "triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report this bug. Please fill out the sections below.
+        Thanks for filing this. The two most useful things you can give us are the exact command you ran and the on-disk state when it failed.
 
   - type: textarea
     id: description
     attributes:
-      label: Description
-      description: A clear and concise description of the bug.
-      placeholder: What happened?
+      label: What happened
+      description: One or two sentences. What you tried, what went wrong.
     validations:
       required: true
 
   - type: textarea
-    id: steps
+    id: command
     attributes:
-      label: Steps to Reproduce
-      description: Steps to reproduce the behavior.
+      label: Command you ran
+      description: The exact slash command (or shell command) and its args.
       placeholder: |
-        1. Go to '...'
-        2. Click on '...'
-        3. See error
+        /atdd-run cart-checkout
+        /auto-merge 142
+      render: shell
     validations:
       required: true
+
+  - type: textarea
+    id: state
+    attributes:
+      label: On-disk state at failure
+      description: |
+        Anything relevant from the workspace. If the bug touches a skill that writes artifacts, paste the path listing or the file contents.
+      placeholder: |
+        $ tree specs/cart-checkout
+        specs/cart-checkout/
+        ├── context.md
+        ├── r-01-non-empty-cart.feature
+        └── .cycles/130/auto-merge.log
+      render: text
 
   - type: textarea
     id: expected
     attributes:
-      label: Expected Behavior
-      description: What did you expect to happen?
+      label: What you expected
+      description: One sentence.
     validations:
       required: true
 
   - type: textarea
     id: actual
     attributes:
-      label: Actual Behavior
-      description: What actually happened?
+      label: What you got
+      description: Error message, escalation comment, broken state. Paste verbatim.
+      render: text
     validations:
       required: true
-
-  - type: textarea
-    id: screenshots
-    attributes:
-      label: Screenshots / Logs
-      description: If applicable, add screenshots or error logs.
 
   - type: input
     id: version
     attributes:
-      label: Version
-      description: Which version are you using?
-      placeholder: e.g., v1.2.3
+      label: Plugin version
+      description: Git tag, or commit SHA if you're on `main`.
+      placeholder: v0.1.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: harness
+    attributes:
+      label: Harness
+      options:
+        - Claude Code
+        - Codex CLI
+        - Both
+    validations:
+      required: true
 
   - type: dropdown
     id: os
     attributes:
-      label: Operating System
+      label: Operating system
       options:
         - Linux
         - macOS
-        - Windows
+        - Windows (WSL)
+        - Windows (native)
         - Other
 
   - type: textarea
     id: context
     attributes:
-      label: Additional Context
-      description: Any other context about the problem.
+      label: Anything else
+      description: Logs, hunches, related issues you already searched.

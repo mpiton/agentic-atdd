@@ -1,33 +1,37 @@
-# Security Policy
+# Security policy
 
-## Supported Versions
+## Supported versions
 
-<!-- Update this table as needed -->
+Pre-1.0, only the latest tagged release receives security fixes. After 1.0 lands this section will list the supported minors.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| latest  | :white_check_mark: |
+| Version | Supported |
+| ------- | --------- |
+| latest (`main`) | yes |
+| anything older | no |
 
-## Reporting a Vulnerability
+## Reporting a vulnerability
 
-**Please do not report security vulnerabilities through public GitHub issues.**
+Do not file a public issue. Two private channels work:
 
-Instead, please report them via one of these methods:
+1. **GitHub Security Advisories** — [open a draft advisory](https://github.com/mpiton/agentic-atdd/security/advisories/new). Preferred. Lets us coordinate a fix in the same place as the disclosure.
+2. **Email** — `matpiton@protonmail.com`. Use this if you cannot open a GitHub account or want PGP. Reach out for a key.
 
-1. **GitHub Security Advisories**: Use the [Security Advisory](https://github.com/mpiton/agentic-atdd/security/advisories/new) feature
-2. **Email**: Send details to `security@mpiton.dev`
+Include the version (commit SHA or release tag), reproduction steps, blast radius, and a suggested fix if you have one.
 
-### What to Include
+## What happens next
 
-- Type of vulnerability
-- Steps to reproduce
-- Impact assessment
-- Suggested fix (if any)
+- Acknowledgment within 48 hours.
+- Initial assessment within a week.
+- Fix timeline depends on severity. Critical issues get a same-week patch and a coordinated disclosure date.
 
-### Response Timeline
+Reporters are credited in the advisory unless they ask to stay anonymous.
 
-- **Acknowledgment**: Within 48 hours
-- **Initial assessment**: Within 1 week
-- **Fix or mitigation**: Depends on severity
+## Scope
 
-We appreciate responsible disclosure and will credit reporters in the security advisory (unless you prefer to remain anonymous).
+This plugin shells out to `gh`, `git`, and your local toolchain. The skills themselves are prompts plus a couple of bash helpers. The most likely vulnerability classes:
+
+- Command injection through interpolated values (slugs, branch names, issue titles).
+- Path traversal through `us-slug` or scenario slugs landing in `specs/`.
+- Unauthorized merge of a sub-PR by bypassing the `baseRefName` guard in `pr-auto-merge`.
+
+If you find anything in one of those families, treat it as security-sensitive even if you're not sure.
