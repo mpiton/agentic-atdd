@@ -108,6 +108,25 @@ gh pr view <pr> --json reviews,statusCheckRollup
 
 The expectation after this skill runs: every comment in the `Actionable` bucket is addressed in the new commit, every comment in the `Question` and `Out of scope` buckets has a reply. If a `CHANGES_REQUESTED` review is still active, ask the reviewer to re-review explicitly via `gh pr comment <pr> --body "Addressed. Ready for re-review."` — bots typically re-check on push automatically; humans need the ping.
 
+## Return contract
+
+`pr-auto-merge` (or any caller) decides what to do next based on what this skill reports back, so report it explicitly. After finishing, return these four values:
+
+- `pushed_commit` — `true` if at least one fix commit was pushed, else `false`.
+- `actionable_remaining` — count of actionable comments still open after this run. `0` on a clean pass.
+- `all_out_of_scope` — `true` if every comment was classified out-of-scope (nothing to fix; replies posted, no commit pushed).
+- `replies_posted` — count of question / out-of-scope replies posted.
+
+The disambiguation that matters: **"pushed no commit" is NOT the same as "done."** Three distinct outcomes share `pushed_commit == false` and must not be conflated:
+
+| Outcome | `pushed_commit` | `actionable_remaining` | `all_out_of_scope` |
+|---|---|---|---|
+| Fixed and pushed | `true` | `0` | `false` |
+| Everything was out of scope (replies only) | `false` | `0` | `true` |
+| Could not make progress (error / stuck) | `false` | `> 0` | `false` |
+
+Callers MUST branch on `actionable_remaining`, never on "did it push." When invoked through the workflow runtime, return this as a schema-validated object; in a prose / Codex session, state these four values explicitly in the hand-off message.
+
 ## Anti-patterns
 
 - Do NOT touch files outside the reviewer's `file:line` references. The blast radius of this skill is what the reviewer asked for, nothing more.

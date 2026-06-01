@@ -1,6 +1,11 @@
 # tests/
 
-Reviewer-prompt regression suite. Each fixture is a self-contained input set with an `expected.md` golden output. When you change a reviewer SKILL, re-run the suite and inspect drift before shipping.
+Two suites:
+
+- **`fixtures/`** — reviewer-prompt regression goldens (this file). Each fixture is a self-contained input set with an `expected.md` golden output. When you change a reviewer SKILL, re-run the suite and inspect drift before shipping.
+- **`contracts/`** — cross-skill string-contract checks (`contracts/check-contracts.sh`). Fixtures catch one reviewer drifting from its golden; contracts catch two skills falling out of agreement (a producer renames a string a consumer still greps for). Pure grep, runs in any CI. See [`contracts/README.md`](contracts/README.md).
+
+The rest of this file covers the reviewer fixtures.
 
 ## Why this exists
 

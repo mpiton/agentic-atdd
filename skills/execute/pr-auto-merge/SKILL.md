@@ -88,7 +88,12 @@ Otherwise → step 4a.
 
 Increment the fix iteration counter. If it exceeds `--max-fix-iterations` → escalate (step 6).
 
-Invoke the bundled [`apply-pr-feedback`](../apply-pr-feedback/SKILL.md) skill against this PR. After it pushes, return to step 2 (CI watch).
+Invoke the bundled [`apply-pr-feedback`](../apply-pr-feedback/SKILL.md) skill against this PR. It returns `{pushed_commit, actionable_remaining, all_out_of_scope, replies_posted}` (see its **Return contract**). Branch on `actionable_remaining`, NOT on "did it push":
+
+- `actionable_remaining == 0` AND `pushed_commit == true` → fixes landed; return to step 2 (CI watch).
+- `actionable_remaining == 0` AND `pushed_commit == false` (everything was out of scope, replies posted) → nothing left to fix; re-run step 4 classification, then step 5 (merge). Do NOT loop.
+- `actionable_remaining > 0` AND `pushed_commit == true` → partial progress; return to step 2.
+- `actionable_remaining > 0` AND `pushed_commit == false` → the skill could not make progress (error or stuck). Do NOT re-invoke it on the same unchanged feedback; escalate (step 6).
 
 ### 5. Merge
 
@@ -142,7 +147,7 @@ CLI flags override file values; file values override built-in defaults.
 
 ## Composition
 
-- [`apply-pr-feedback`](../apply-pr-feedback/SKILL.md) (bundled with this plugin) handles the comment-application loop. This skill orchestrates it. Zero external dependency.
+- [`apply-pr-feedback`](../apply-pr-feedback/SKILL.md) (bundled with this plugin) handles the comment-application loop. This skill orchestrates it and branches on the `{pushed_commit, actionable_remaining, all_out_of_scope, replies_posted}` return contract — "pushed no commit" alone never decides the loop; `actionable_remaining` does. Zero external dependency.
 - `green-cycle` opens the PR; this skill takes over from there when `auto_merge.enabled == true`.
 - `atdd-run` chains `green-cycle` → `pr-auto-merge` per scenario, then opens the final integration→trunk PR and stops.
 

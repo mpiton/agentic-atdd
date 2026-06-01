@@ -15,6 +15,15 @@ Every skill in any bucket MUST:
 2. Be listed in the top-level `README.md`.
 3. Be registered in `.claude-plugin/plugin.json`.
 
+## Non-skill components
+
+The plugin also ships components that are not skills. They live at the plugin root (not under `skills/`, not inside `.claude-plugin/`):
+
+- `hooks/` — deterministic guardrails. `hooks/hooks.json` is auto-discovered by Claude Code when the plugin is installed via `/plugin`; it wires `PreToolUse`/etc. events to scripts in the same folder. Today: `guard-merge.sh`, which blocks any merge/push into the trunk branch (hardening the prose rule in `pr-auto-merge`). Hooks are Claude-Code-only — every guardrail they enforce must also exist as a prose rule in the relevant SKILL.md so Codex stays protected. The manual `install.sh` path does NOT register hooks; that is documented in `hooks/README.md`.
+- `tests/contracts/` — cross-skill string-contract checks (`check-contracts.sh`). When a producer→consumer handoff rides on an exact string (a `VERDICT:` line, an `ESCALATED:` phrase, the apply-pr-feedback return keys), add an assertion here in the same change.
+
+Durable run artifacts (written at runtime, not shipped): `specs/<us-slug>/run-state.json` is the orchestrator's per-scenario crash-resume index. GitHub Issues stays the system of record; run-state is a local fast index reconciled against GitHub on resume.
+
 ## SKILL.md frontmatter contract
 
 ```yaml

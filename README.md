@@ -103,7 +103,7 @@ Read [`docs/USAGE.md`](docs/USAGE.md) for the three entry paths (existing GitHub
 
 Codex CLI auto-discovers skills from `~/.codex/skills/<name>/SKILL.md` using the same format Claude Code uses. The installer symlinks each plugin skill into both `~/.claude/skills/` and `~/.codex/skills/`, so one edit propagates to both harnesses. `scripts/sync-codex.sh` is a deprecated alias that delegates to `install.sh`.
 
-Parallel reviewers (the default on Claude Code via the `Task` tool) fall back to sequential execution under Codex automatically. You can force sequential anywhere with `--sequential` on `atdd-run`.
+Parallel reviewers (the default on Claude Code via the `Agent` tool, formerly `Task`) fall back to sequential execution under Codex automatically. You can force sequential anywhere with `--sequential` on `atdd-run`.
 
 ## Example
 
@@ -118,7 +118,7 @@ Parallel reviewers (the default on Claude Code via the `Task` tool) fall back to
 1. **Small composable skills.** You should be able to delete any one of them and replace it with your own version in an afternoon.
 2. **Two hard human gates.** Post-spec and the final PR. Nothing else asks for your input.
 3. **Bounded auto-correction.** Reviewer loops cap at 2 retries. The auto-merge apply-pr-feedback loop caps at 3. Past the cap, the pipeline drops an escalation comment on the issue or PR and moves on.
-4. **Integration branch is mandatory.** Sub-PRs target `atdd/<slug>/integration`, never `main`. `pr-auto-merge` refuses to merge PRs whose base is the trunk.
+4. **Integration branch is mandatory.** Sub-PRs target `atdd/<slug>/integration`, never `main`. `pr-auto-merge` refuses to merge PRs whose base is the trunk, and on Claude Code a `PreToolUse` hook (`hooks/guard-merge.sh`) blocks any such merge deterministically — scoped to repos with a `.atdd-pipeline.json`, so it never interferes elsewhere. Under Codex the prose rule is the guard.
 5. **GitHub Issues is the database.** The spec, the work breakdown, the escalations — all of it lives there. The pipeline reads its own state from `gh` rather than from a sidecar file.
 
 ## License

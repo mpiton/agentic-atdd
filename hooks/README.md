@@ -1,0 +1,28 @@
+# hooks/
+
+Deterministic guardrails that run outside the model. Today there is one: `guard-merge.sh`.
+
+## guard-merge.sh — trunk-merge guard
+
+A `PreToolUse` hook (matcher `Bash`) that blocks any command which would merge or push into the trunk branch. It turns design principle #4 — *scenario sub-PRs target the integration branch, never trunk* — from a prose instruction the model is asked to honour into a rule the harness enforces.
+
+What it blocks, when the current repo has a `.atdd-pipeline.json`:
+
+- `gh pr merge ...` whose PR base resolves to the trunk (`trunk_branch` from `.atdd-pipeline.json`, plus `main` / `master`). The base is resolved with `gh pr view --json baseRefName`. If it can't be resolved, the merge is **blocked** (fail-closed) — a wrong block just means you merge by hand.
+- `gh api .../merges` — the direct merge API, which would bypass `gh pr merge` entirely.
+- `git push ... <src>:<trunk>` — pushing some other ref onto trunk. A plain `git push origin main` that fast-forwards trunk onto itself is left alone.
+
+What it does **not** touch:
+
+- Any repo without a `.atdd-pipeline.json`. The hook is global (it loads for every repo once the plugin is installed), so it scopes itself to pipeline-managed repos and is a no-op everywhere else.
+- The human merging the final `integration → trunk` PR. That is a human gate (#2): you merge it in the GitHub UI or your own terminal, neither of which is a Claude tool call, so the hook never sees it. It only fires on commands the agent runs.
+
+### Wiring
+
+Installed via `/plugin install` (recommended): `hooks/hooks.json` at the plugin root is auto-discovered. Nothing else to do.
+
+Manual / symlink install (`scripts/install.sh`, the Codex-CLI path): that script only symlinks skill folders, so it does **not** register this hook. To enable it there, add the same block to your `~/.claude/settings.json`, pointing `command` at the absolute path of `guard-merge.sh`.
+
+### Portability
+
+Hooks are a Claude Code feature. Under Codex there is no `PreToolUse`, so the guard does not run — the prose refusal in `pr-auto-merge` and `green-cycle` remains the enforcement there. Treat this hook as defense-in-depth on the Claude path, not a replacement for the prose rule.

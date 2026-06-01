@@ -32,7 +32,7 @@ Ask, in order. If the answer is unclear, push back; do NOT guess.
    - `e2e` (default: `tests/e2e/`)
    - `ui` (default: `tests/ui/`)
 5. **Commit style.** `conventional` (default) or `freeform`.
-6. **Reviewer execution.** `parallel` (default; uses `Task` tool on Claude Code) or `sequential` (Codex default, or low-budget mode).
+6. **Reviewer execution.** `parallel` (default; uses the `Agent` tool on Claude Code) or `sequential` (Codex default, or low-budget mode).
 7. **Shared-language file.** Default: `CONTEXT.md` at repo root. If absent, propose creating one and offer `grill-with-docs` from mattpocock skills as the way to populate it.
 8. **ADR directory.** Default: `docs/adr/`. Reviewers consult these.
 9. **Trunk branch.** Default: `main`. The final PR targets this; sub-PRs MUST NOT target it.

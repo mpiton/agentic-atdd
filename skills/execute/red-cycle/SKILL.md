@@ -54,7 +54,9 @@ The test MUST:
 - Make no assertion that the scenario does not state.
 - NOT mock the system under test.
 
-Run the test suite. Confirm the new test fails for the **expected** reason (assertion / missing implementation), not for an unrelated reason (compile error, missing import, wrong setup). If it fails for the wrong reason, fix the setup and retry until it fails for the right reason — that fix does NOT consume an auto-correction attempt.
+Run the test suite. Confirm the new test fails for the **expected** reason (assertion / missing implementation), not for an unrelated reason (compile error, missing import, wrong setup). If it fails for the wrong reason, fix the setup and retry — that fix does NOT consume a fidelity auto-correction attempt.
+
+This setup loop is **bounded**: at most 3 setup-fix attempts. If after 3 the test still fails for the wrong reason, STOP and escalate (post a comment on the issue with the wrong-reason failure output and the phrase `ESCALATED: red-cycle could not get the test to fail for the right reason.`). Do not proceed to the fidelity review on a test that never failed correctly. The cap exists so a broken harness or environment (missing tooling, gitignored env file absent in a worktree) surfaces to a human instead of looping forever — consistent with principle #3 (bounded auto-correction).
 
 ### 4. Fidelity review
 

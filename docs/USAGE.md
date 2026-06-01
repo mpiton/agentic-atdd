@@ -158,7 +158,7 @@ In greenfield, expect `spec-generate` to interview you heavily — there's no PR
 
 `--dry-run` prints what would happen without writing anything. Useful when you want to see the issue plan before letting the pipeline create real tickets.
 
-`--sequential` forces the reviewers to run one after the other instead of in parallel. Use it under Codex (no `Task` tool) or when you're rate-limited.
+`--sequential` forces the reviewers to run one after the other instead of in parallel. Use it under Codex (no `Agent` tool) or when you're rate-limited.
 
 `--no-auto-merge` puts you back in the old flow: a manual `MERGE` / `CHANGE` / `SKIP` prompt after every `green-cycle`. Keep that flag in mind if your project has a CI you don't trust yet — better to gate each scenario PR by hand than to let the pipeline ship something broken.
 
@@ -194,6 +194,7 @@ The repo holds:
 - `specs/<us-slug>/*.feature` — one Gherkin file per business rule.
 - `specs/<us-slug>/review.md` — the verdict from `spec-review`.
 - `specs/<us-slug>/issues.json` — the mapping from scenario slug to issue number, plus the integration branch name.
+- `specs/<us-slug>/run-state.json` — per-scenario phase/status, written after every transition. The crash-resume index: an interrupted run picks up at the scenario it died on, reconciled against GitHub. GitHub stays the source of truth; this is the local fast index.
 - `specs/<us-slug>/.cycles/<n>/*.md` — per-scenario reviewer reports.
 - `specs/<us-slug>/.cycles/<n>/auto-merge.log` — the CI + bot watch timeline.
 - `specs/<us-slug>/escalations.md` — only present if at least one cycle escalated.
@@ -206,7 +207,7 @@ You commit all of it. The pipeline reads these files when you resume.
 
 The same `SKILL.md` files work on both harnesses. Two behavioural differences:
 
-- Parallel reviewers run via the `Task` tool on Claude Code. Under Codex, there's no `Task` tool, so the orchestrator runs the reviewers sequentially in the same session. You can force this anywhere with `--sequential`.
+- Parallel reviewers run via the `Agent` tool on Claude Code (formerly `Task`; the alias still works). Under Codex, there's no `Agent` tool, so the orchestrator runs the reviewers sequentially in the same session. You can force this anywhere with `--sequential`.
 - Subagent dispatch under Claude Code uses the `Agent` tool when available; under Codex, the orchestrator inlines the equivalent prompt.
 
 Everything else is identical. The plugin lives in one folder, symlinked to both `~/.claude/skills/` and `~/.codex/skills/`.

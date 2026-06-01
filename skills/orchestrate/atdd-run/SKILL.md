@@ -74,24 +74,41 @@ For each sub-issue in `issues.json.scenarios` (iterate sequentially — sub-PRs 
    - Escalates (comment on PR, leave open) on any timeout / exhausted fix iterations / failing CI it could not repair.
 4. After auto-merge succeeds, move to the next scenario. On escalation, record the PR number in `specs/<us-slug>/escalations.md` and continue with remaining scenarios (do NOT abort the whole pipeline).
 
+**Write `run-state.json` after every phase boundary** of every scenario (after RED commits, after the draft PR opens, after merge, after escalation). This is what makes a multi-hour run crash-resumable rather than restart-from-scratch — see *Run state*. The per-scenario phase transitions are the only durable record of where a fanned-out or interrupted run actually stopped.
+
 There is **no per-scenario human checkpoint** in Stage 3. This is the explicit goal of `auto_merge.enabled == true`.
 
 ### Stage 4 — Final integration PR (terminal stop)
 
 After every scenario in `issues.json.scenarios` has either been merged into the integration branch or escalated:
 
-1. Refuse to proceed if any non-escalated scenario is still unmerged.
-2. Push the integration branch tip (it already has all scenario commits via squash merges).
+1. **Classify every scenario** from `run-state.json` (see *Run state*) reconciled against GitHub into exactly one of `merged`, `escalated`, `unmerged`:
+   - If ANY scenario is `unmerged` (neither merged nor escalated), REFUSE to proceed. The run is not finished; resume the unmerged scenarios first.
+   - `escalated` scenarios do NOT block the final PR, but they MUST be surfaced — an escalated scenario is a hole in the user story, and shipping it silently into the trunk PR is the failure this step exists to prevent.
+2. Push the integration branch tip (it already has all merged scenario commits via squash merges).
 3. Open a single PR `atdd/<us-slug>/integration → trunk_branch`:
    - Title: `[US] <us-slug>: <Goal sentence>`.
-   - Body: aggregated summary — goal, list of scenarios (each linking its sub-PR), open escalations, link to `specs/<us-slug>/` artifacts.
-   - Labels: `atdd`, `us/<us-slug>`, `integration`.
-4. **HARD STOP. Checkpoint #2 — Human gate on the trunk PR.** Do NOT invoke `pr-auto-merge` here. `pr-auto-merge` refuses to operate on PRs whose base is `trunk_branch` by contract.
-5. Print the PR URL and return.
+   - **Draft status:** open it as a **draft** when `escalated.length > 0`, otherwise ready. A draft can't be fast-merged, which keeps an incomplete US from slipping past the human gate (and dovetails with the trunk-merge guard hook).
+   - Body: aggregated summary — goal, list of scenarios (each linking its sub-PR). When `escalated.length > 0`, the body MUST LEAD with a blocking section:
+
+     ```
+     ## ⚠️ Incomplete — <N> scenario(s) escalated, not implemented
+
+     This user story is NOT fully delivered. The following scenarios exhausted
+     auto-correction and were skipped:
+     - #<issue> <title> — see specs/<us-slug>/escalations.md
+     ...
+     Resolve or consciously accept each before merging into <trunk_branch>.
+     ```
+
+     Then the normal summary and a link to `specs/<us-slug>/` artifacts.
+   - Labels: `atdd`, `us/<us-slug>`, `integration`; add `incomplete` when `escalated.length > 0`.
+4. **HARD STOP. Checkpoint #2 — Human gate on the trunk PR.** Do NOT invoke `pr-auto-merge` here. `pr-auto-merge` refuses to operate on PRs whose base is `trunk_branch` by contract, and the trunk-merge guard hook blocks it deterministically. Draft status is a guardrail, not the gate — the human still reviews and promotes.
+5. Print the PR URL (and, if drafted, the escalated-scenario list) and return.
 
 ## Parallelism
 
-When `parallel: true` (default), Stage 3 reviewers run via the `Task` tool on Claude Code. With `--sequential` (or under Codex), reviewers are invoked in series within the same session.
+When `parallel: true` (default), Stage 3 reviewers run via the `Agent` tool on Claude Code (formerly `Task`; the alias still works). With `--sequential` (or under Codex), reviewers are invoked in series within the same session.
 
 ## Failure escalation
 
@@ -103,12 +120,45 @@ Every escalation produces a comment on the relevant GitHub issue containing:
 
 The pipeline does NOT continue past an escalated sub-issue; it moves to the next sub-issue and records the skipped one in `specs/<us-slug>/escalations.md`.
 
+## Run state
+
+`specs/<us-slug>/run-state.json` is the orchestrator's durable, per-scenario progress record. GitHub Issues remains the system of record (principle #5); this file is the local index that lets a crashed or interrupted run resume at the exact scenario+phase it stopped at, instead of replaying a whole stage. It is also what Stage 4 classifies on.
+
+Shape:
+
+```json
+{
+  "us_slug": "cart-checkout",
+  "integration_branch": "atdd/cart-checkout/integration",
+  "updated_at": "<iso8601>",
+  "scenarios": {
+    "<scenario-slug>": {
+      "issue": 130,
+      "branch": "atdd/cart-checkout/scenario-130",
+      "phase": "red | green | auto-merge | merged | escalated",
+      "pr": 142,
+      "status": "pending | in_progress | merged | escalated",
+      "attempts": { "red_fidelity": 0, "green_review": 0, "fix_iterations": 0 },
+      "updated_at": "<iso8601>"
+    }
+  }
+}
+```
+
+Two rules:
+
+1. **Write after every transition.** The orchestrator rewrites the relevant scenario entry the moment a phase boundary is crossed (RED committed, draft PR opened, merged, escalated). Never batch the writes to the end — the value is entirely in surviving an interruption.
+2. **Reconcile against GitHub on resume, never trust the file blindly.** A crash can land between "merged on GitHub" and "wrote run-state.json". On resume, for each scenario re-derive ground truth from `gh` (`gh pr view <pr> --json state,mergedAt`, `gh issue view <issue> --json state`, branch existence) and correct any drift before continuing. The file is a fast index; GitHub is the truth.
+
+`run-state.json` is seeded from `issues.json` at the start of Stage 3 (every scenario `pending`).
+
 ## Outputs
 
 - `specs/<us-slug>/context.md`
 - `specs/<us-slug>/*.feature`
 - `specs/<us-slug>/review.md`
 - `specs/<us-slug>/issues.json` (includes `integration_branch`)
+- `specs/<us-slug>/run-state.json` (per-scenario phase/status; the crash-resume index — see *Run state*)
 - `specs/<us-slug>/escalations.md` (only if any sub-issue / sub-PR escalated)
 - `specs/<us-slug>/.cycles/<issue-number>/auto-merge.log` per scenario (pr-auto-merge timeline).
 - One scenario branch + auto-merged sub-PR per successfully completed scenario.
@@ -116,4 +166,9 @@ The pipeline does NOT continue past an escalated sub-issue; it moves to the next
 
 ## Resume semantics
 
-`--from-stage` jumps directly to that stage but reuses the existing artifacts on disk. The skill is idempotent: rerunning a completed stage is a no-op when its outputs already exist (unless `--force` is passed).
+Two granularities, coarse and fine:
+
+- **Coarse (`--from-stage`)** jumps directly to a stage and reuses the existing artifacts on disk. The skill is idempotent: rerunning a completed stage is a no-op when its outputs already exist (unless `--force` is passed).
+- **Fine (per-scenario, automatic).** When Stage 3 is re-entered, the orchestrator reads `run-state.json`, **reconciles each scenario against GitHub** (see *Run state*), and resumes each at its recorded phase: a scenario already `merged` is skipped, one stuck at `auto-merge` re-enters `pr-auto-merge`, one at `green` re-opens/repairs its PR, one `escalated` stays escalated. This is what makes an interrupted multi-hour run resumable at the scenario it died on rather than from the top of the stage.
+
+Background watches (CI / bot-idle) are NOT restored across a session restart, so the resume path re-derives watch state from `gh` rather than any in-memory timer.
