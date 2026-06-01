@@ -160,6 +160,8 @@ In greenfield, expect `spec-generate` to interview you heavily — there's no PR
 
 `--sequential` forces the reviewers to run one after the other instead of in parallel. Use it under Codex (no `Agent` tool) or when you're rate-limited.
 
+`--stage3=<sequential|workflow>` picks how Stage 3 runs the scenarios. `sequential` (the default) does one scenario at a time. `workflow` is the opt-in, experimental parallel path: the shipped `atdd-stage3` dynamic workflow produces every scenario's RED+GREEN in isolated worktrees at once and serializes only the merge into the integration branch. It needs the Workflow tool (recent Claude Code, paid plan, not org-disabled) and falls back to sequential when that's missing — so it's safe to set and Codex ignores it. It hasn't been run end-to-end against a live repo yet; leave it off unless you've read `workflows/atdd-stage3.workflow.mjs` and want to try the parallel path.
+
 `--no-auto-merge` puts you back in the old flow: a manual `MERGE` / `CHANGE` / `SKIP` prompt after every `green-cycle`. Keep that flag in mind if your project has a CI you don't trust yet — better to gate each scenario PR by hand than to let the pipeline ship something broken.
 
 ---

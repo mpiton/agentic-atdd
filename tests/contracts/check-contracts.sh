@@ -113,6 +113,23 @@ assert_hasE "$RUN" "merged.*escalated.*unmerged|unmerged" "Stage 4 classifies sc
 assert_hasE "$RUN" "[Rr]econcile" "atdd-run reconciles state against GitHub on resume"
 echo
 
+echo "[9] Stage 3 workflow substrate — shipped artifacts agree with the dispatcher"
+WF="workflows/atdd-stage3.workflow.mjs"
+AG_SCN="agents/atdd-scenario.md"
+AG_MRG="agents/atdd-merge.md"
+assert_file "$WF"      "atdd-stage3 workflow shipped"
+assert_has  "$WF" "export const meta"        "workflow has a meta block"
+assert_has  "$WF" "agentType: 'atdd-scenario'" "workflow dispatches the atdd-scenario agent"
+assert_has  "$WF" "agentType: 'atdd-merge'"    "workflow dispatches the atdd-merge agent"
+assert_file "$AG_SCN"  "atdd-scenario agent shipped"
+assert_file "$AG_MRG"  "atdd-merge agent shipped"
+assert_hasE "$AG_SCN" "^name: atdd-scenario"   "atdd-scenario agent name matches agentType"
+assert_hasE "$AG_MRG" "^name: atdd-merge"      "atdd-merge agent name matches agentType"
+assert_has  "$RUN" "atdd-stage3.workflow.mjs"  "atdd-run references the workflow scriptPath"
+assert_has  "$RUN" "stage3_mode"               "atdd-run gates on stage3_mode"
+assert_hasE "$RUN" "[Cc]apability check|fall back to sequential" "atdd-run has a capability fallback"
+echo
+
 echo "----------------------------------------"
 printf 'contracts: %s passed, %s failed\n' "$(green "$pass")" "$( [ "$fail" -gt 0 ] && red "$fail" || echo "$fail")"
 [ "$fail" -eq 0 ]

@@ -33,6 +33,7 @@ Ask, in order. If the answer is unclear, push back; do NOT guess.
    - `ui` (default: `tests/ui/`)
 5. **Commit style.** `conventional` (default) or `freeform`.
 6. **Reviewer execution.** `parallel` (default; uses the `Agent` tool on Claude Code) or `sequential` (Codex default, or low-budget mode).
+6b. **Stage 3 execution mode** (`stage3_mode`). `sequential` (default; one scenario at a time) or `workflow` (opt-in, experimental, Claude Code only — produces all scenarios in parallel via the shipped `atdd-stage3` dynamic workflow, serializing only the merge). `workflow` silently falls back to `sequential` when the Workflow tool is unavailable. Leave it `sequential` unless you have read `workflows/atdd-stage3.workflow.mjs` and want the parallel path.
 7. **Shared-language file.** Default: `CONTEXT.md` at repo root. If absent, propose creating one and offer `grill-with-docs` from mattpocock skills as the way to populate it.
 8. **ADR directory.** Default: `docs/adr/`. Reviewers consult these.
 9. **Trunk branch.** Default: `main`. The final PR targets this; sub-PRs MUST NOT target it.
@@ -69,6 +70,7 @@ Write `.atdd-pipeline.json` at the repo root:
   "reviewers": {
     "mode": "parallel"
   },
+  "stage3_mode": "sequential",
   "trunk_branch": "main",
   "integration_branch_pattern": "atdd/{us_slug}/integration",
   "auto_merge": {

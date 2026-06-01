@@ -26,6 +26,7 @@ Trigger when the user provides a user-story slug (e.g. `/atdd-run cart-checkout`
 - `us-slug` — kebab-case identifier (used for filenames and GitHub labels).
 - Optional flags:
   - `--sequential` — run reviewers serially instead of in parallel (Codex fallback).
+  - `--stage3=<sequential|workflow>` — Stage 3 execution mode. Overrides `.atdd-pipeline.json:stage3_mode`. Default `sequential`. `workflow` is the opt-in parallel path and is ignored (falls back to sequential) when the Workflow tool is unavailable.
   - `--dry-run` — generate scenarios + show issue plan, do not create issues, do not write code.
   - `--from-stage <spec|sync|red|green|auto-merge|final-pr>` — resume from a specific phase.
   - `--no-auto-merge` — temporarily disable `pr-auto-merge` for this run; falls back to the legacy per-scenario human checkpoint #2 inside `green-cycle`.
@@ -61,7 +62,11 @@ Output: a JSON manifest `specs/<us-slug>/issues.json` mapping `scenario-slug →
 
 Stage 2 already provisioned the integration branch `atdd/<us-slug>/integration` and wrote it to `issues.json`.
 
-For each sub-issue in `issues.json.scenarios` (iterate sequentially — sub-PRs target the same integration branch, so concurrency would race the merge queue):
+Stage 3 has two execution modes. Pick with `.atdd-pipeline.json:stage3_mode` (`sequential` | `workflow`) or the `--stage3=<mode>` flag. **Default is `sequential`** — it is the only mode under Codex and the safe path everywhere.
+
+#### Sequential mode (default)
+
+For each sub-issue in `issues.json.scenarios`, iterate **sequentially** — sub-PRs target the same integration branch, so concurrency would race the merge queue:
 
 1. Run [`red-cycle <issue>`](../../execute/red-cycle/SKILL.md). Generates failing test + runs `review-fidelity`. Bounded auto-correct ×2 then escalate (comment on issue, skip to next scenario).
 2. Run [`green-cycle <issue>`](../../execute/green-cycle/SKILL.md). Generates minimal implementation + runs `review-architecture` and `review-intent` (parallel by default). Bounded auto-correct ×2 then escalate. On success: opens a **draft PR targeting the integration branch**.
@@ -74,7 +79,19 @@ For each sub-issue in `issues.json.scenarios` (iterate sequentially — sub-PRs 
    - Escalates (comment on PR, leave open) on any timeout / exhausted fix iterations / failing CI it could not repair.
 4. After auto-merge succeeds, move to the next scenario. On escalation, record the PR number in `specs/<us-slug>/escalations.md` and continue with remaining scenarios (do NOT abort the whole pipeline).
 
-**Write `run-state.json` after every phase boundary** of every scenario (after RED commits, after the draft PR opens, after merge, after escalation). This is what makes a multi-hour run crash-resumable rather than restart-from-scratch — see *Run state*. The per-scenario phase transitions are the only durable record of where a fanned-out or interrupted run actually stopped.
+#### Workflow mode (opt-in, experimental — Claude Code only)
+
+When `stage3_mode == "workflow"` **and** the Workflow tool is available (dynamic workflows are research-preview: a recent Claude Code, a paid plan, not org-disabled), produce all scenarios in parallel and serialize only the merge. This is the substrate that removes the merge-queue serialization from the per-scenario *work* while keeping the merge itself single-lane.
+
+1. **Capability check.** If the Workflow tool is unavailable (Codex, free plan, `disableWorkflows`, older version), **silently fall back to sequential mode above.** Never hard-fail on a missing capability.
+2. **Launch the shipped script.** Call the Workflow tool with `scriptPath = ${CLAUDE_PLUGIN_ROOT}/workflows/atdd-stage3.workflow.mjs` and `args = { usSlug, integrationBranch, specsDir, scenarios }` (flatten `issues.json.scenarios` to `[{slug, issue, branch, level, rule, feature}]`). The script:
+   - runs `red-cycle` + `green-cycle` per scenario in an **isolated worktree** (agentType `atdd-scenario`), each branch cut from the integration tip — parallel, no barrier;
+   - merges each draft PR through a **single serialized lane** (agentType `atdd-merge`) that rebases onto the live integration tip, re-runs CI, then `pr-auto-merge`s — so the merge queue never races.
+3. **Consume the result.** The script returns `{ merged: [slug], escalated: [{slug, issue, pr, reason}] }`. Write each scenario's terminal phase into `run-state.json` and record escalations in `escalations.md`, exactly as sequential mode does.
+
+The human gates stay OUTSIDE the workflow: checkpoint #1 (spec) already happened before Stage 3; checkpoint #2 (final PR) happens in Stage 4 after the workflow returns. Dynamic workflows take no mid-run human input, which is why the gates must bracket Stage 3, never sit inside it. This mode is experimental and opt-in; the sequential loop is the supported default until it has real-repo mileage.
+
+**Write `run-state.json` after every phase boundary** of every scenario (after RED commits, after the draft PR opens, after merge, after escalation), in both modes. This is what makes a multi-hour run crash-resumable rather than restart-from-scratch — see *Run state*. The per-scenario phase transitions are the only durable record of where a fanned-out or interrupted run actually stopped.
 
 There is **no per-scenario human checkpoint** in Stage 3. This is the explicit goal of `auto_merge.enabled == true`.
 
