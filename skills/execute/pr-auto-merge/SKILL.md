@@ -48,14 +48,23 @@ gh pr ready <pr-number>
 
 ### 2. Watch CI
 
-Block until all required checks complete:
+Wait until all required checks reach a terminal state — **without blocking the session** on Claude Code.
+
+- **Claude Code (default):** run the watch in the background (`run_in_background`) or via the `Monitor` tool, so the session is free to advance other scenarios while CI runs. The harness re-invokes you when the watch exits.
+  - With `Monitor`, the line filter MUST match **every** terminal state, not just success: `succeeded|passed|failed|failure|cancelled|timed_out|skipped|error`. A filter that greps only the success marker stays silent on a crash, so a failed run looks identical to "still running" — the classic Monitor footgun.
+  - With background `Bash`, run an until-loop that exits when no check is still `IN_PROGRESS`/`QUEUED`.
+- **Codex (fallback):** there is no `Monitor`/backgrounding, so block on `gh pr checks <pr-number> --watch --fail-fast=false`.
+
+**Re-entrancy (both paths).** Background and `Monitor` tasks are NOT restored across a session restart. Never trust an in-memory timer or counter to know where CI stood; on every wake re-derive the truth from GitHub:
 
 ```bash
-gh pr checks <pr-number> --watch --fail-fast=false
+gh pr checks <pr-number> --json name,state,conclusion
 ```
 
-- **All green** → proceed to step 3.
-- **Any failed/cancelled** → run `/apply-pr-feedback` style triage: fetch the failing job logs (`gh run view <run-id> --log-failed`), attempt one targeted fix, push, restart step 2. This counts against `--max-fix-iterations`. Exceeded → escalate (step 6).
+Then branch on the derived state:
+
+- **All checks `COMPLETED` and every conclusion green** → proceed to step 3.
+- **Any `FAILURE`/`CANCELLED`/`TIMED_OUT`** → triage like `/apply-pr-feedback`: fetch the failing job logs (`gh run view <run-id> --log-failed`), attempt one targeted fix, push, restart step 2. This counts against `--max-fix-iterations`. Exceeded → escalate (step 6).
 
 ### 3. Bot idle watch
 
@@ -67,12 +76,19 @@ gh api "repos/{owner}/{repo}/pulls/<pr>/reviews"    --jq '.[]|{login:.user.login
 gh api "repos/{owner}/{repo}/pulls/<pr>/comments"   --jq '.[]|{login:.user.login,t:.user.type,at:.updated_at}'
 ```
 
-Loop:
+The three endpoints are independent — fetch them concurrently (`&` + `wait`) and fold the timestamps into one `last_bot_activity = max(at)` across all bot entries.
 
-1. Compute `last_bot_activity = max(at)` across all bot entries on the PR.
-2. If `(now - last_bot_activity) >= idle_window`, exit the idle watch.
-3. Otherwise sleep `min(60s, remaining_idle_window)` and re-poll.
-4. Hard timeout: if total time in this step exceeds `watch_timeout`, escalate (step 6).
+Run the idle wait **without blocking the session** on Claude Code, same as step 2:
+
+- **Claude Code (default):** background `Bash` until-loop (or `Monitor`) that re-polls and exits when `(now - last_bot_activity) >= idle_window`. The session stays free meanwhile; the harness re-invokes you on exit.
+- **Codex (fallback):** block, sleeping `min(60s, remaining_idle_window)` between polls.
+
+**Re-entrancy.** The idle window is derived state, never an in-memory clock: on every wake recompute `last_bot_activity` from the three endpoints and compare against `now`. A restart that loses the background task loses nothing — the next poll reconstructs the window from GitHub.
+
+Exit conditions:
+
+1. `(now - last_bot_activity) >= idle_window` → exit the idle watch, go to step 4.
+2. Total elapsed in this step exceeds `watch_timeout` → escalate (step 6).
 
 ### 4. Classify outstanding feedback
 

@@ -35,6 +35,10 @@
 //     usSlug: string,
 //     integrationBranch: string,           // e.g. "atdd/cart-checkout/integration"
 //     specsDir: string,                     // e.g. "specs/cart-checkout"
+//     conventions: string,                  // optional: pre-extracted shared language +
+//                                           //   relevant ADRs, handed to each scenario
+//                                           //   agent so N agents don't each re-discover
+//                                           //   the same conventions (token cache)
 //     scenarios: [                          // from issues.json.scenarios, flattened
 //       { slug, issue, branch, level, rule, feature }
 //     ]
@@ -54,6 +58,7 @@ export const meta = {
 const usSlug = args && args.usSlug
 const integrationBranch = args && args.integrationBranch
 const specsDir = (args && args.specsDir) || `specs/${usSlug}`
+const conventions = (args && args.conventions) || ''
 const scenarios = (args && args.scenarios) || []
 
 if (!usSlug || !integrationBranch || scenarios.length === 0) {
@@ -120,6 +125,7 @@ const results = await pipeline(
       `1. Run the red-cycle skill for issue ${s.issue}: write ONE failing acceptance test that mirrors the Gherkin in the issue, run review-fidelity, auto-correct at most twice. Commit the failing test on ${s.branch}.`,
       `2. Run the green-cycle skill for issue ${s.issue}: write the minimal implementation, run review-architecture and review-intent, auto-correct at most twice. Open a DRAFT PR with base ${integrationBranch} (NEVER trunk).`,
       ``,
+      conventions ? `Project conventions (shared language + relevant ADRs), pre-extracted so you don't re-discover what every scenario shares — still consult any ADR your own diff specifically touches:\n<conventions>\n${conventions}\n</conventions>` : '',
       `RED and GREEN MUST happen in THIS worktree so GREEN sees RED's committed failing test. Do not push to or merge into trunk.`,
       `If red-cycle or green-cycle exhausts its auto-correction, STOP: leave the branch, set escalated=true with the reason, omit pr. Otherwise return the draft PR number.`,
       `Write the reviewer reports under ${specsDir}/.cycles/${s.issue}/ as the skills specify.`,
@@ -157,6 +163,11 @@ const merged = settled.filter((r) => r.merged)
 const escalated = settled.filter((r) => !r.merged)
 
 log(`Stage 3 complete: ${merged.length} merged, ${escalated.length} escalated/incomplete of ${scenarios.length} scenarios.`)
+
+const spent = (typeof budget !== 'undefined' && budget && budget.spent) ? budget.spent() : null
+if (spent != null) {
+  log(`Stage 3 token spend: ~${Math.round(spent / 1000)}k output tokens across ${scenarios.length} scenarios.`)
+}
 
 return {
   merged: merged.map((r) => r.slug),

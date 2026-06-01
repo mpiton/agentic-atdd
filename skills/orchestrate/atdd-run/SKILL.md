@@ -84,7 +84,7 @@ For each sub-issue in `issues.json.scenarios`, iterate **sequentially** — sub-
 When `stage3_mode == "workflow"` **and** the Workflow tool is available (dynamic workflows are research-preview: a recent Claude Code, a paid plan, not org-disabled), produce all scenarios in parallel and serialize only the merge. This is the substrate that removes the merge-queue serialization from the per-scenario *work* while keeping the merge itself single-lane.
 
 1. **Capability check.** If the Workflow tool is unavailable (Codex, free plan, `disableWorkflows`, older version), **silently fall back to sequential mode above.** Never hard-fail on a missing capability.
-2. **Launch the shipped script.** Call the Workflow tool with `scriptPath = ${CLAUDE_PLUGIN_ROOT}/workflows/atdd-stage3.workflow.mjs` and `args = { usSlug, integrationBranch, specsDir, scenarios }` (flatten `issues.json.scenarios` to `[{slug, issue, branch, level, rule, feature}]`). The script:
+2. **Launch the shipped script.** Call the Workflow tool with `scriptPath = ${CLAUDE_PLUGIN_ROOT}/workflows/atdd-stage3.workflow.mjs` and `args = { usSlug, integrationBranch, specsDir, scenarios, conventions }` (flatten `issues.json.scenarios` to `[{slug, issue, branch, level, rule, feature}]`; `conventions` is the once-extracted shared language + relevant ADRs, passed so the N parallel scenario agents don't each re-discover them — a token cache, not a replacement for an agent consulting the ADRs its own diff touches). The script:
    - runs `red-cycle` + `green-cycle` per scenario in an **isolated worktree** (agentType `atdd-scenario`), each branch cut from the integration tip — parallel, no barrier;
    - merges each draft PR through a **single serialized lane** (agentType `atdd-merge`) that rebases onto the live integration tip, re-runs CI, then `pr-auto-merge`s — so the merge queue never races.
 3. **Consume the result.** The script returns `{ merged: [slug], escalated: [{slug, issue, pr, reason}] }`. Write each scenario's terminal phase into `run-state.json` and record escalations in `escalations.md`, exactly as sequential mode does.
@@ -129,13 +129,23 @@ When `parallel: true` (default), Stage 3 reviewers run via the `Agent` tool on C
 
 ## Failure escalation
 
-Every escalation produces a comment on the relevant GitHub issue containing:
+An escalation is a first-class signal, not a buried comment. In a sequential run the orchestrator sees each one inline; the moment Stage 3 fans out (workflow mode), a single blocked scenario is easy to miss, so escalation has one contract the orchestrator owns end to end.
 
-- The failing skill name.
-- The last reviewer report.
-- The two auto-correction attempts (diffs).
+Every escalation does four things:
 
-The pipeline does NOT continue past an escalated sub-issue; it moves to the next sub-issue and records the skipped one in `specs/<us-slug>/escalations.md`.
+1. **Comment on the GitHub issue / PR** (the sub-skill already does this) with: the failing skill name, the last reviewer report, the auto-correction attempt diffs, and the `ESCALATED:` phrase. GitHub stays the system of record (principle #5).
+2. **Append a structured entry to `specs/<us-slug>/escalations.md`** — one block per escalation, machine-readable enough for Stage 4 to classify:
+
+   ```
+   - scenario: <slug> · issue: #<n> · pr: #<n|—> · phase: red | green | auto-merge · at: <iso8601>
+     reason: <one line>
+     artifacts: specs/<us-slug>/.cycles/<n>/<report>.md
+   ```
+
+3. **Mark it in `run-state.json`** — set the scenario's `status: "escalated"` and `phase` to where it died, so resume and Stage 4 both read one source.
+4. **Emit a best-effort push** — call `PushNotification` (Claude Code) so a human is actually told a scenario is blocked, e.g. `ATDD <us-slug>: scenario <slug> (#<n>) escalated at <phase> — <reason>`. This is best-effort and **no-op under Codex** (no such tool); it never gates the pipeline.
+
+The pipeline does NOT continue past an escalated sub-issue's work; it moves to the next scenario. It does NOT abort the whole run. Stage 4 then refuses to ready the final PR while any scenario is `unmerged`, and surfaces every `escalated` one in the blocking PR header — so an escalation can't ship silently into the trunk PR.
 
 ## Run state
 

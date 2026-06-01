@@ -105,6 +105,8 @@ assert_has "$RED"   "ESCALATED:" "red-cycle escalation phrase"
 assert_has "$GREEN" "ESCALATED:" "green-cycle escalation phrase"
 assert_has "$PAM"   "ESCALATED:" "pr-auto-merge escalation phrase"
 assert_has "$RUN"   "escalations.md" "atdd-run records escalations.md"
+assert_has  "$RUN"  "PushNotification" "atdd-run emits a best-effort escalation push"
+assert_hasE "$RUN"  "status: \"escalated\"|status.*escalated" "atdd-run marks run-state status escalated"
 echo
 
 echo "[8] Run-state contract — orchestrator owns a resumable, reconciled state file"
@@ -128,6 +130,15 @@ assert_hasE "$AG_MRG" "^name: atdd-merge"      "atdd-merge agent name matches ag
 assert_has  "$RUN" "atdd-stage3.workflow.mjs"  "atdd-run references the workflow scriptPath"
 assert_has  "$RUN" "stage3_mode"               "atdd-run gates on stage3_mode"
 assert_hasE "$RUN" "[Cc]apability check|fall back to sequential" "atdd-run has a capability fallback"
+echo
+
+echo "[10] Non-blocking watch + interview dedup + conventions cache (R5/R9)"
+SGEN="skills/spec/spec-generate/SKILL.md"
+assert_hasE "$PAM"  "Monitor|run_in_background|background" "pr-auto-merge watch is non-blocking on Claude Code"
+assert_hasE "$PAM"  "[Rr]e-entran|re-derive"               "pr-auto-merge watch re-derives state on resume"
+assert_hasE "$PAM"  "--watch"                              "pr-auto-merge keeps the blocking watch as Codex fallback"
+assert_hasE "$SGEN" "do NOT re-ask|answered ground|thread them forward" "spec-generate forwards captured fields instead of re-interviewing"
+assert_has  "$WF"   "conventions"                          "workflow accepts a conventions cache for fan-out agents"
 echo
 
 echo "----------------------------------------"
