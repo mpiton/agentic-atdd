@@ -25,7 +25,24 @@ What it does **not** touch:
 
 Installed via `/plugin install` (recommended): `hooks/hooks.json` at the plugin root is auto-discovered. Nothing else to do.
 
-Manual / symlink install (`scripts/install.sh`, the Codex-CLI path): that script only symlinks skill folders, so it does **not** register this hook. To enable it there, add the same block to your `~/.claude/settings.json`, pointing `command` at the absolute path of `guard-merge.sh`.
+Manual / symlink install (`scripts/install.sh`): that script only symlinks skill folders, so it does **not** register this hook. On **Claude Code**, enable it by adding this block to your `~/.claude/settings.json`, with `command` pointing at the absolute path of `guard-merge.sh` in your checkout:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "/absolute/path/to/atdd-pipeline/hooks/guard-merge.sh" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Under **Codex** there is no hook system, so the guard can't run there at all regardless of wiring — the prose rule in `pr-auto-merge` is the enforcement (see Portability).
 
 ### Portability
 
