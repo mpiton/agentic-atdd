@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "atdd-pipeline",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Multi-agent ATDD pipeline for Claude Code and Codex. Impact map -> Gherkin -> GitHub Issues -> RED/GREEN with parallel reviewers and autonomous sub-PR merging. Two human gates: spec, and the final PR.",
   "author": {
     "name": "Mathieu Piton",

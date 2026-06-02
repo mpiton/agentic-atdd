@@ -4,8 +4,11 @@ All notable changes to this plugin land here. Format follows [Keep a Changelog](
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-06-02
+
 ### Added
 
+- `scripts/install.sh` now also symlinks `agents/` into `~/.claude/agents/` and registers the trunk-merge `PreToolUse` hook in `~/.claude/settings.json` (idempotent, backed up first), so a manual / symlink install gets the Claude-only machinery that `/plugin install` auto-discovers. Codex installs skip both — it has no subagent or hook system.
 - `apply-pr-feedback` skill bundled inside the plugin. Replaces the external `fix-pr-comments` dependency that `pr-auto-merge` used to call. Zero external skill dep now.
 - `.claude-plugin/marketplace.json` at the repo root, turning the repo into a single-plugin Claude Code marketplace. Install via `/plugin marketplace add mpiton/agentic-atdd` then `/plugin install atdd-pipeline@agentic-atdd`.
 - `plugin.json` enriched with `homepage`, `repository`, `license`, `keywords`, `category`, structured `author`. Marketplace-schema compliant.
