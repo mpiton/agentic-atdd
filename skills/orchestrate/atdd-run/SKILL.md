@@ -108,7 +108,7 @@ After every scenario in `issues.json.scenarios` has either been merged into the 
    - **Draft status:** open it as a **draft** when `escalated.length > 0`, otherwise ready. A draft can't be fast-merged, which keeps an incomplete US from slipping past the human gate (and dovetails with the trunk-merge guard hook).
    - Body: aggregated summary — goal, list of scenarios (each linking its sub-PR). When `escalated.length > 0`, the body MUST LEAD with a blocking section:
 
-     ```
+     ```text
      ## ⚠️ Incomplete — <N> scenario(s) escalated, not implemented
 
      This user story is NOT fully delivered. The following scenarios exhausted
@@ -136,7 +136,7 @@ Every escalation does four things:
 1. **Comment on the GitHub issue / PR** (the sub-skill already does this) with: the failing skill name, the last reviewer report, the auto-correction attempt diffs, and the `ESCALATED:` phrase. GitHub stays the system of record (principle #5).
 2. **Append a structured entry to `specs/<us-slug>/escalations.md`** — one block per escalation, machine-readable enough for Stage 4 to classify:
 
-   ```
+   ```text
    - scenario: <slug> · issue: #<n> · pr: #<n|—> · phase: red | green | auto-merge · at: <iso8601>
      reason: <one line>
      artifacts: specs/<us-slug>/.cycles/<n>/<report>.md

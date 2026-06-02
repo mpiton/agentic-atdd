@@ -17,7 +17,10 @@
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-cd "$ROOT"
+cd "$ROOT" || {
+  printf 'check-contracts: failed to cd into repo root: %s\n' "$ROOT" >&2
+  exit 1
+}
 
 pass=0
 fail=0

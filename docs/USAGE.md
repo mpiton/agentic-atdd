@@ -196,7 +196,7 @@ The repo holds:
 - `specs/<us-slug>/*.feature` — one Gherkin file per business rule.
 - `specs/<us-slug>/review.md` — the verdict from `spec-review`.
 - `specs/<us-slug>/issues.json` — the mapping from scenario slug to issue number, plus the integration branch name.
-- `specs/<us-slug>/run-state.json` — per-scenario phase/status, written after every transition. The crash-resume index: an interrupted run picks up at the scenario it died on, reconciled against GitHub. GitHub stays the source of truth; this is the local fast index.
+- `specs/<us-slug>/run-state.json` — per-scenario phase/status, written after every transition. The crash-resume index: an interrupted run picks up at the scenario it died on, reconciled against GitHub. GitHub stays the source of truth; this is a **volatile, runtime/local** index rebuilt from GitHub on resume — so, unlike the artifacts above, it's fine to gitignore rather than commit (committing it is harmless, it gets reconciled anyway).
 - `specs/<us-slug>/.cycles/<n>/*.md` — per-scenario reviewer reports.
 - `specs/<us-slug>/.cycles/<n>/auto-merge.log` — the CI + bot watch timeline.
 - `specs/<us-slug>/escalations.md` — only present if at least one cycle escalated.

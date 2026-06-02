@@ -17,6 +17,10 @@ What it does **not** touch:
 - Any repo without a `.atdd-pipeline.json`. The hook is global (it loads for every repo once the plugin is installed), so it scopes itself to pipeline-managed repos and is a no-op everywhere else.
 - The human merging the final `integration → trunk` PR. That is a human gate (#2): you merge it in the GitHub UI or your own terminal, neither of which is a Claude tool call, so the hook never sees it. It only fires on commands the agent runs.
 
+### Requirements
+
+`jq` must be on `PATH` — the hook parses the tool-call payload with it. If `jq` is missing the guard goes **inert** (exits 0) rather than blocking, so a missing dependency degrades to today's prose-only enforcement instead of wedging every `Bash` call. Manual installers on a machine without `jq` should install it (`apt install jq` / `brew install jq`) or the guard simply won't fire.
+
 ### Wiring
 
 Installed via `/plugin install` (recommended): `hooks/hooks.json` at the plugin root is auto-discovered. Nothing else to do.

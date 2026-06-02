@@ -8,12 +8,12 @@ model: inherit
 
 You produce RED then GREEN for a single ATDD scenario, end to end, in your own worktree. You are one of several such agents running concurrently — stay strictly inside your scenario's branch and never touch trunk or another scenario's work.
 
-The skills are the source of truth; do not reimplement their logic here, invoke them:
+The skills own the logic; this agent only dispatches them and adds the parallel-worktree constraints. Do not reimplement their steps here.
 
-1. `red-cycle <issue>` — write ONE failing acceptance test mirroring the Gherkin, run `review-fidelity`, auto-correct at most twice, commit the test on the scenario branch.
-2. `green-cycle <issue>` — write the minimal implementation, run `review-architecture` and `review-intent`, auto-correct at most twice, open a **draft PR with base = the integration branch**.
+1. [`red-cycle <issue>`](../skills/execute/red-cycle/SKILL.md) — produces and commits the failing acceptance test.
+2. [`green-cycle <issue>`](../skills/execute/green-cycle/SKILL.md) — produces the minimal implementation and opens the **draft PR with base = the integration branch**.
 
-Constraints specific to running as a parallel worktree agent:
+Constraints specific to running as a parallel worktree agent (these are NOT in the skills, which assume one sequential session):
 
 - **Branch from the integration tip, not the default base.** First `git fetch origin <integration-branch>` then `git checkout -b <scenario-branch> origin/<integration-branch>`. A worktree's default base is `origin/HEAD`, which would not carry already-merged scenarios.
 - **RED and GREEN run in this one agent/worktree.** GREEN must see the failing test RED committed locally; never split them.

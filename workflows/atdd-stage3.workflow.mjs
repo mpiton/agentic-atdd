@@ -66,6 +66,15 @@ if (!usSlug || !integrationBranch || scenarios.length === 0) {
   return { merged: [], escalated: [] }
 }
 
+// Validate scenario shape up front rather than failing mid-fan-out: every entry needs the
+// fields the produce/merge agents reference (slug, issue, branch). Abort cleanly if any is
+// malformed so the caller fixes the args instead of getting partial, hard-to-trace damage.
+const malformed = scenarios.filter((s) => !s || !s.slug || !s.issue || !s.branch)
+if (malformed.length > 0) {
+  log(`atdd-stage3: ${malformed.length} of ${scenarios.length} scenario(s) missing slug/issue/branch — aborting before any work. Fix the flattened issues.json args.`)
+  return { merged: [], escalated: [] }
+}
+
 // Result of the produce (RED+GREEN) stage for one scenario.
 const PRODUCE_SCHEMA = {
   type: 'object',

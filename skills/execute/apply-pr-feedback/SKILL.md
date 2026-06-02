@@ -142,7 +142,7 @@ Callers MUST branch on `actionable_remaining`, never on "did it push." When invo
 
 ## Composition
 
-- `pr-auto-merge` invokes this skill between bot-idle-watch and re-running CI. It expects the skill to push at least one commit when it returns, otherwise the auto-merge loop exits.
+- `pr-auto-merge` invokes this skill between bot-idle-watch and re-running CI. It branches on the **Return contract** above — specifically `actionable_remaining`, never on whether a commit was pushed: `actionable_remaining == 0` means the feedback is cleared (fixes pushed OR everything was out of scope) and the loop proceeds to merge; `> 0` continues only when `pushed_commit == true`, otherwise escalates.
 - Standalone use: pair with `gh pr view <pr> --comments` to inspect what you're about to clear, then run this skill.
 
 User: $ARGUMENTS
