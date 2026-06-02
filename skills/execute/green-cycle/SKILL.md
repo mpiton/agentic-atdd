@@ -44,7 +44,7 @@ Run the suite. Confirm: every previously green test still passes AND the new tes
 
 ### 2. Parallel review
 
-Invoke both reviewers. On Claude Code, dispatch them in parallel via the `Task` tool. With `--sequential` (or under Codex), invoke them serially in the same session.
+Invoke both reviewers. On Claude Code, dispatch them in parallel via the `Agent` tool (formerly `Task`; the alias still works). With `--sequential` (or under Codex), invoke them serially in the same session.
 
 - [`review-architecture`](../review-architecture/SKILL.md) — verifies placement, naming, conventions, domain responsibilities.
 - [`review-intent`](../review-intent/SKILL.md) — verifies conformance to the scenario, minimalism, no hidden side effects.

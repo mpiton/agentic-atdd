@@ -158,7 +158,9 @@ In greenfield, expect `spec-generate` to interview you heavily — there's no PR
 
 `--dry-run` prints what would happen without writing anything. Useful when you want to see the issue plan before letting the pipeline create real tickets.
 
-`--sequential` forces the reviewers to run one after the other instead of in parallel. Use it under Codex (no `Task` tool) or when you're rate-limited.
+`--sequential` forces the reviewers to run one after the other instead of in parallel. Use it under Codex (no `Agent` tool) or when you're rate-limited.
+
+`--stage3=<sequential|workflow>` picks how Stage 3 runs the scenarios. `sequential` (the default) does one scenario at a time. `workflow` is the opt-in, experimental parallel path: the shipped `atdd-stage3` dynamic workflow produces every scenario's RED+GREEN in isolated worktrees at once and serializes only the merge into the integration branch. It needs the Workflow tool (recent Claude Code, paid plan, not org-disabled) and falls back to sequential when that's missing — so it's safe to set and Codex ignores it. It hasn't been run end-to-end against a live repo yet; leave it off unless you've read `workflows/atdd-stage3.workflow.mjs` and want to try the parallel path.
 
 `--no-auto-merge` puts you back in the old flow: a manual `MERGE` / `CHANGE` / `SKIP` prompt after every `green-cycle`. Keep that flag in mind if your project has a CI you don't trust yet — better to gate each scenario PR by hand than to let the pipeline ship something broken.
 
@@ -194,6 +196,7 @@ The repo holds:
 - `specs/<us-slug>/*.feature` — one Gherkin file per business rule.
 - `specs/<us-slug>/review.md` — the verdict from `spec-review`.
 - `specs/<us-slug>/issues.json` — the mapping from scenario slug to issue number, plus the integration branch name.
+- `specs/<us-slug>/run-state.json` — per-scenario phase/status, written after every transition. The crash-resume index: an interrupted run picks up at the scenario it died on, reconciled against GitHub. GitHub stays the source of truth; this is a **volatile, runtime/local** index rebuilt from GitHub on resume — so, unlike the artifacts above, it's fine to gitignore rather than commit (committing it is harmless, it gets reconciled anyway).
 - `specs/<us-slug>/.cycles/<n>/*.md` — per-scenario reviewer reports.
 - `specs/<us-slug>/.cycles/<n>/auto-merge.log` — the CI + bot watch timeline.
 - `specs/<us-slug>/escalations.md` — only present if at least one cycle escalated.
@@ -206,7 +209,7 @@ You commit all of it. The pipeline reads these files when you resume.
 
 The same `SKILL.md` files work on both harnesses. Two behavioural differences:
 
-- Parallel reviewers run via the `Task` tool on Claude Code. Under Codex, there's no `Task` tool, so the orchestrator runs the reviewers sequentially in the same session. You can force this anywhere with `--sequential`.
+- Parallel reviewers run via the `Agent` tool on Claude Code (formerly `Task`; the alias still works). Under Codex, there's no `Agent` tool, so the orchestrator runs the reviewers sequentially in the same session. You can force this anywhere with `--sequential`.
 - Subagent dispatch under Claude Code uses the `Agent` tool when available; under Codex, the orchestrator inlines the equivalent prompt.
 
 Everything else is identical. The plugin lives in one folder, symlinked to both `~/.claude/skills/` and `~/.codex/skills/`.

@@ -25,7 +25,9 @@ Generate Gherkin scenarios from `specs/<us-slug>/context.md`. The pipeline calls
 
 ### 1. Interview (mandatory before generation)
 
-Read `context.md`. Identify every ambiguity in the business rules — DO NOT guess. For each ambiguity, ask one focused question. Examples of things that always require a question if not already explicit:
+Read `context.md` **first, and treat it as answered ground**. `impact-map` (or `from-issue`) already elicited the actor, the action, the goal, and the numbered rules — do NOT re-ask any of that. Re-interviewing fields the user already gave upstream is the main avoidable token cost in the spec phase; thread them forward instead.
+
+Ask only the ambiguities that `context.md` does NOT already resolve — DO NOT guess on those. For each genuinely-new ambiguity, ask one focused question. Examples of things that always require a question if not already explicit in `context.md`:
 
 - Numeric thresholds without units (`"limit of 100"` — 100 what?).
 - Implicit time zones, date formats, currency.
