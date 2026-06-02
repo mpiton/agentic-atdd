@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
-# Install the atdd-pipeline plugin's skills and slash commands into the
-# user's Claude Code skill directory.
+# Install the atdd-pipeline plugin into the user's Claude Code (and Codex) setup:
+#   - skills      -> symlinked into ~/.claude/skills and ~/.codex/skills
+#   - commands    -> slash-command stubs in ~/.claude/commands
+#   - agents      -> symlinked into ~/.claude/agents (Claude Code only)
+#   - trunk-merge hook -> registered in ~/.claude/settings.json (Claude Code only)
+#
+# The `/plugin install` flow is the recommended path and auto-discovers agents/hooks/
+# workflows for you; this script is the manual / Codex fallback and wires the Claude-only
+# pieces by hand so a symlink install gets the same enforcement.
 #
 # Usage:
 #   ./install.sh                  # install for current user (~/.claude)
 #   CLAUDE_HOME=/path ./install   # install into a custom CLAUDE_HOME
 #
-# Idempotent: re-running replaces the symlinks in place.
+# Idempotent: re-running replaces the symlinks in place and never double-registers the hook.
 
 set -euo pipefail
 
@@ -75,4 +82,53 @@ EOF
   echo "  + /$cmd_name -> $skill_name"
 done
 
-echo "[atdd-pipeline] done. Restart Claude Code to pick up new skills."
+# --- Agents (Claude Code only; Codex has no subagent system) ---------------------------
+# Symlink each agents/<name>.md into $CLAUDE_HOME/agents so the Stage 3 workflow's
+# agentType dispatch (atdd-scenario, atdd-merge) resolves on a manual install.
+AGENTS_SRC="$PLUGIN_DIR/agents"
+AGENTS_DIR="$CLAUDE_HOME/agents"
+if [[ -d "$AGENTS_SRC" ]]; then
+  mkdir -p "$AGENTS_DIR"
+  echo "[atdd-pipeline] installing agents into $AGENTS_DIR"
+  while IFS= read -r agent_md; do
+    name="$(basename "$agent_md")"
+    target="$AGENTS_DIR/$name"
+    [[ -L "$target" || -e "$target" ]] && rm -rf "$target"
+    ln -s "$agent_md" "$target"
+    echo "  + $target -> $agent_md"
+  done < <(find "$AGENTS_SRC" -maxdepth 1 -name '*.md' -type f)
+fi
+
+# --- Trunk-merge guard hook (Claude Code only) -----------------------------------------
+# Register the PreToolUse hook in $CLAUDE_HOME/settings.json. Idempotent: skips if a hook
+# already points at guard-merge.sh. Backs settings.json up before touching it.
+GUARD="$PLUGIN_DIR/hooks/guard-merge.sh"
+SETTINGS="$CLAUDE_HOME/settings.json"
+if [[ -f "$GUARD" ]]; then
+  if command -v jq >/dev/null 2>&1; then
+    [[ -f "$SETTINGS" ]] || echo '{}' > "$SETTINGS"
+    if jq -e --arg g "$GUARD" '[.hooks.PreToolUse[]?.hooks[]?.command // empty] | map(contains($g)) | any' "$SETTINGS" >/dev/null 2>&1; then
+      echo "[atdd-pipeline] trunk-merge hook already registered in $SETTINGS"
+    else
+      cp "$SETTINGS" "$SETTINGS.atdd.bak"
+      tmp="$(mktemp)"
+      jq --arg g "$GUARD" '
+        .hooks = (.hooks // {})
+        | .hooks.PreToolUse = ((.hooks.PreToolUse // []) + [
+            { matcher: "Bash", hooks: [ { type: "command", command: $g } ] }
+          ])
+      ' "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
+      echo "[atdd-pipeline] registered trunk-merge hook in $SETTINGS (backup: $SETTINGS.atdd.bak)"
+    fi
+  else
+    echo "[atdd-pipeline] WARN: jq not found — cannot auto-register the trunk-merge hook."
+    echo "                add a PreToolUse(Bash) hook running $GUARD to $SETTINGS by hand (see hooks/README.md)."
+  fi
+fi
+
+# --- Workflow mode note -----------------------------------------------------------------
+echo "[atdd-pipeline] note: Stage 3 'workflow' mode (opt-in, experimental) resolves its script"
+echo "                via \${CLAUDE_PLUGIN_ROOT}, which is only set under '/plugin install'. On this"
+echo "                manual install Stage 3 stays in 'sequential' mode (the default)."
+
+echo "[atdd-pipeline] done. Restart Claude Code (and Codex) to pick up new skills and agents."

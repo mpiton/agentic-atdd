@@ -42,7 +42,7 @@ escalation: <none|human-comment-on-issue|human-comment-on-pr|human-checkpoint>
 
 ## Installer
 
-`scripts/install.sh` is the single entry point. It walks `skills/<bucket>/<name>/SKILL.md` and symlinks each skill folder into both `~/.claude/skills/<name>` and `~/.codex/skills/<name>` (when `~/.codex/` is present). It also writes a thin slash-command stub per command listed in `.claude-plugin/plugin.json:commands` into `~/.claude/commands/`.
+`scripts/install.sh` is the single entry point. It walks `skills/<bucket>/<name>/SKILL.md` and symlinks each skill folder into both `~/.claude/skills/<name>` and `~/.codex/skills/<name>` (when `~/.codex/` is present). It also writes a thin slash-command stub per command listed in `.claude-plugin/plugin.json:commands` into `~/.claude/commands/`. On the Claude side it additionally symlinks `agents/*.md` into `~/.claude/agents/` and registers the trunk-merge hook in `~/.claude/settings.json` (idempotent, backed up). Codex skips agents and the hook (Claude-only); Stage 3 `workflow` mode needs `${CLAUDE_PLUGIN_ROOT}`, which only the `/plugin install` flow sets, so a manual install stays in sequential mode.
 
 `scripts/sync-codex.sh` is a deprecated alias that delegates to `install.sh`. Both Claude Code and Codex consume the same `SKILL.md` format, so there is no longer a translation step.
 
