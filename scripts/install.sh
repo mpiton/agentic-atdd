@@ -5,6 +5,10 @@
 #   - agents      -> symlinked into ~/.claude/agents (Claude Code only)
 #   - trunk-merge hook -> registered in ~/.claude/settings.json (Claude Code only)
 #
+# Codex installs get skills only: it has no subagent or hook system, so agents and the
+# trunk-merge hook are skipped there. Hook registration needs `jq` — without it the script
+# warns and leaves the hook unregistered (skills, commands, and agents still install).
+#
 # The `/plugin install` flow is the recommended path and auto-discovers agents/hooks/
 # workflows for you; this script is the manual / Codex fallback and wires the Claude-only
 # pieces by hand so a symlink install gets the same enforcement.
@@ -117,8 +121,10 @@ if [[ -f "$GUARD" ]]; then
         | .hooks.PreToolUse = ((.hooks.PreToolUse // []) + [
             { matcher: "Bash", hooks: [ { type: "command", command: $g } ] }
           ])
-      ' "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
-      echo "[atdd-pipeline] registered trunk-merge hook in $SETTINGS (backup: $SETTINGS.atdd.bak)"
+      ' "$SETTINGS" > "$tmp" \
+        && mv "$tmp" "$SETTINGS" \
+        && echo "[atdd-pipeline] registered trunk-merge hook in $SETTINGS (backup: $SETTINGS.atdd.bak)" \
+        || { echo "[atdd-pipeline] ERROR: failed to register trunk-merge hook in $SETTINGS" >&2; rm -f "$tmp"; exit 1; }
     fi
   else
     echo "[atdd-pipeline] WARN: jq not found — cannot auto-register the trunk-merge hook."
