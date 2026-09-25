@@ -7,6 +7,19 @@ All notable changes to this plugin land here. Format follows [Keep a Changelog](
 ### Added
 
 - `from-linear` skill (`/from-linear <ticket-id>`) — third entry point next to `impact-map` and `from-issue`. Imports a Linear card by identifier (e.g. `ENG-123`): resolves an access path at runtime (Linear MCP tools → `linear` CLI on PATH → GraphQL API with `LINEAR_API_KEY`), parses the description and comments into `specs/<us-slug>/context.md`, interviews for the missing actor/action/data/test-level fields, and leaves one back-link comment on the card. GitHub Issues stays the pipeline database: unlike `from-issue` it does not seed `issues.json`, so `to-issues-atdd` creates the parent and US fresh.
+- `verify-acceptance` skill (`/verify-acceptance <us-slug>`) — Stage 3.5, between the last scenario merge and the final PR. Checks the integrated story the way a human would, blind to the acceptance tests: a real browser for `@ui`, the real HTTP/CLI interface for `@e2e`, a throwaway script for `@use-case`, a `file:line` code trace only when the app can't run. Smoke-tests up to 5 touched entry points and flags weakened pre-existing tests. Writes `specs/<us-slug>/verify.md` ending with `VERDICT: OK | PARTIAL | FAIL`.
+- `agents/atdd-verify.md` — runs `verify-acceptance` in its own context so screenshots and app logs stay out of the orchestrator.
+- `verify` block in `.atdd-pipeline.json` (`start_command`, `base_url`, `ready_check`, all optional) and interview item 12 in `setup-atdd-pipeline`.
+- `run-state.json:verify` (`verdict`, `sha`, `report`, `at`). A verdict is pinned to the integration tip it checked; Stage 4 re-runs verify when it is stale.
+- Contract checks section [11]: the `VERDICT: OK/PARTIAL/FAIL` handoff between `verify-acceptance` and `atdd-run`, the `ESCALATED: verify found` phrase, the three agent dispatch names, and the workflow's own `isolation: 'worktree'`.
+
+### Changed
+
+- `atdd-run` sequential Stage 3 now dispatches each scenario to the `atdd-scenario` agent, then its PR to the `atdd-merge` agent, one at a time in the main checkout. The orchestrator keeps only `run-state.json` and the agents' short reports, so context no longer grows with the number of scenarios. Inside a scenario agent the two green reviewers run one after the other (a subagent can't spawn subagents). Codex and `--no-auto-merge` run the skills inline; on Codex, `/clear` between scenarios and resume with `--from-stage red`.
+- `atdd-run` Stage 4 opens the final PR as a draft when verify returns `FAIL`, leads the body with the findings, and always includes a per-scenario verification summary. `--from-stage verify` added; `verify` added to the escalation phases.
+- `agents/atdd-scenario.md` no longer sets `isolation: worktree`; the Stage 3 workflow passes it on the call, so sequential mode can reuse the agent in the main checkout (env files, installed deps). On escalation the agent commits leftover work as a local `wip:` commit so the next scenario starts on a clean tree.
+- `agents/atdd-merge.md` blocks on the CI and bot watches instead of backgrounding them: a subagent that ends its turn returns to the orchestrator before the merge.
+- `apply-pr-feedback`: tests are the contract. It never deletes, skips or loosens an acceptance test to satisfy a comment; such comments are classified out of scope.
 
 ## [0.2.0] — 2026-06-02
 

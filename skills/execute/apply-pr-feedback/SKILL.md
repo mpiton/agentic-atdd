@@ -77,6 +77,8 @@ Per actionable comment:
 3. Make exactly the change requested. No bonus rewrites, no style passes, no related cleanups.
 4. Check off the comment in your in-memory checklist.
 
+**Tests are the contract.** The acceptance test encodes a scenario the human approved at checkpoint #1. Never delete a test, skip it, or loosen an assertion or expected value to satisfy a comment. Classify such a comment `Out of scope` and reply that the test follows the approved scenario; a behavior change goes through the spec, not this PR. Fixing a real defect in test code (a typo, a wrong import, a flaky wait) is fine as long as every assertion keeps its meaning.
+
 The cardinal rule: **never expand scope**. If a reviewer suggests "this loop could be a `.map`" and you also notice the variable name is bad, leave the variable alone. Renames create review churn and risk regressions outside the original change.
 
 ### 4. Reply to non-actionable items
@@ -133,6 +135,7 @@ Callers MUST branch on `actionable_remaining`, never on "did it push." When invo
 - Do NOT skip a comment because it looks trivial. Reply or fix; never silently ignore.
 - Do NOT batch this skill across multiple unrelated PRs. One PR per invocation.
 - Do NOT use this skill to suppress a linter / typechecker error the reviewer flagged. Fix the underlying issue.
+- Do NOT weaken an acceptance test (delete, skip, loosen an assertion) to make a comment or a red CI go away. Stage 3.5 flags it as `WEAKENED-TEST`.
 
 ## Failure modes
 

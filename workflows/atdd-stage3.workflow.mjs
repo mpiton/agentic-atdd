@@ -123,6 +123,8 @@ const results = await pipeline(
   scenarios,
 
   // Stage A — RED + GREEN together, isolated. Parallel across scenarios (no barrier).
+  // Worktree isolation is set on this call, not in the atdd-scenario frontmatter: sequential
+  // mode dispatches the same agent in the main checkout.
   (s) => agent(
     [
       `Execute ATDD RED then GREEN for scenario #${s.issue} ("${s.slug}", rule ${s.rule || '?'}, level ${s.level || '?'}) of user story "${usSlug}".`,

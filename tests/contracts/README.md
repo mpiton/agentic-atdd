@@ -12,6 +12,8 @@ Cross-skill string-contract checks. Run `./check-contracts.sh` from anywhere; it
 - `green-cycle` / `pr-auto-merge` promise sub-PRs never target trunk; `hooks/guard-merge.sh` enforces it.
 - `red-cycle`, `green-cycle`, `pr-auto-merge` emit `ESCALATED:`; `atdd-run` records `escalations.md`.
 - `atdd-run` owns `run-state.json` and reconciles it against GitHub on resume.
+- `verify-acceptance` ends with `VERDICT: OK` / `PARTIAL` / `FAIL`; `atdd-run` branches on each and escalates with `ESCALATED: verify found`.
+- `atdd-run` dispatches the `atdd-scenario`, `atdd-merge` and `atdd-verify` agents by name; the workflow sets `isolation: 'worktree'` itself, since `atdd-scenario` no longer does.
 
 Change a producer's wording without updating the consumer and a gate breaks silently. These checks fail loudly instead.
 

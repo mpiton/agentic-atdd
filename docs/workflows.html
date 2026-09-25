@@ -198,7 +198,14 @@
         </div>
         <div class="arrow">↓</div>
 
-        <div class="loop">repeat /red → /green → /auto-merge per sub-issue (sequential, same base)</div>
+        <div class="loop">repeat /red → /green → /auto-merge per sub-issue (sequential, same base · one subagent per scenario under /atdd-run)</div>
+        <div class="arrow">↓</div>
+
+        <div class="step p-review">
+          <div class="cmd">/verify-acceptance &lt;slug&gt;</div>
+          <div class="what">run the app, play each scenario like a human (browser · real API/CLI · script · code trace last), blind to the tests · smoke touched flows</div>
+          <div class="out">→ verify.md · VERDICT OK / PARTIAL / FAIL (FAIL = final PR opens as draft)</div>
+        </div>
         <div class="arrow">↓</div>
 
         <div class="step p-merge">
@@ -283,6 +290,13 @@
           <div class="cmd">improve-codebase-architecture (mattpocock)</div>
           <div class="what">between scenarios, never during a cycle</div>
           <div class="out">→ ADR updated, deeper refactors if patterns emerge</div>
+        </div>
+        <div class="arrow">↓</div>
+
+        <div class="step p-review">
+          <div class="cmd">/verify-acceptance &lt;slug&gt;</div>
+          <div class="what">run the app, play each scenario like a human (browser · real API/CLI · script · code trace last), blind to the tests · smoke touched flows</div>
+          <div class="out">→ verify.md · VERDICT OK / PARTIAL / FAIL (FAIL = final PR opens as draft)</div>
         </div>
         <div class="arrow">↓</div>
 
@@ -372,6 +386,13 @@
         <div class="arrow">↓</div>
 
         <div class="loop">repeat scenarios · revisit CONTEXT.md often</div>
+        <div class="arrow">↓</div>
+
+        <div class="step p-review">
+          <div class="cmd">/verify-acceptance &lt;slug&gt;</div>
+          <div class="what">run the app, play each scenario like a human (browser · real API/CLI · script · code trace last), blind to the tests · smoke touched flows</div>
+          <div class="out">→ verify.md · VERDICT OK / PARTIAL / FAIL (FAIL = final PR opens as draft)</div>
+        </div>
         <div class="arrow">↓</div>
 
         <div class="step p-merge">

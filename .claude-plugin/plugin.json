@@ -40,6 +40,7 @@
     { "name": "review-intent",       "path": "skills/execute/review-intent/SKILL.md" },
     { "name": "apply-pr-feedback",   "path": "skills/execute/apply-pr-feedback/SKILL.md" },
     { "name": "pr-auto-merge",       "path": "skills/execute/pr-auto-merge/SKILL.md" },
+    { "name": "verify-acceptance",   "path": "skills/execute/verify-acceptance/SKILL.md" },
     { "name": "atdd-run",            "path": "skills/orchestrate/atdd-run/SKILL.md" },
     { "name": "setup-atdd-pipeline", "path": "skills/orchestrate/setup-atdd-pipeline/SKILL.md" }
   ],
@@ -58,6 +59,7 @@
     { "name": "review-architecture", "skill": "review-architecture" },
     { "name": "review-intent",       "skill": "review-intent" },
     { "name": "apply-pr-feedback",   "skill": "apply-pr-feedback" },
-    { "name": "auto-merge",          "skill": "pr-auto-merge" }
+    { "name": "auto-merge",          "skill": "pr-auto-merge" },
+    { "name": "verify-acceptance",   "skill": "verify-acceptance" }
   ]
 }

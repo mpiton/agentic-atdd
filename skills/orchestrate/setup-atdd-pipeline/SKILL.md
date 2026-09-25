@@ -44,6 +44,10 @@ Ask, in order. If the answer is unclear, push back; do NOT guess.
     - `watch_timeout_minutes` (default `60`) — wall-clock cap per sub-PR.
     - `merge_method` (default `squash`).
     - `bot_logins` — extra login allowlist beyond GitHub's `user.type == "Bot"` (defaults include `coderabbitai`, `coderabbitai[bot]`, `github-actions[bot]`, `codex`, `codex-bot`).
+12. **Verify (Stage 3.5).** How `verify-acceptance` launches the app to check the story by hand. Every field optional; skip them and the verifier discovers the command from `package.json`, `Makefile`, `docker compose` or the README.
+    - `start_command` — e.g. `pnpm dev`.
+    - `base_url` — e.g. `http://localhost:3000`.
+    - `ready_check` — command that exits 0 once the app is up, e.g. `curl -sf http://localhost:3000/health`.
 
 ## Output
 
@@ -86,6 +90,11 @@ Write `.atdd-pipeline.json` at the repo root:
       "codex",
       "codex-bot"
     ]
+  },
+  "verify": {
+    "start_command": "pnpm dev",
+    "base_url": "http://localhost:3000",
+    "ready_check": "curl -sf http://localhost:3000/health"
   }
 }
 ```

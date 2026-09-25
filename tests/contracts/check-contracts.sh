@@ -144,6 +144,25 @@ assert_hasE "$SGEN" "do NOT re-ask|answered ground|thread them forward" "spec-ge
 assert_has  "$WF"   "conventions"                          "workflow accepts a conventions cache for fan-out agents"
 echo
 
+echo "[11] Verify stage + per-scenario agent dispatch"
+VER="skills/execute/verify-acceptance/SKILL.md"
+AG_VER="agents/atdd-verify.md"
+assert_file "$VER"    "verify-acceptance skill shipped"
+assert_file "$AG_VER" "atdd-verify agent shipped"
+assert_hasE "$AG_VER" "^name: atdd-verify" "atdd-verify agent name matches the dispatch name"
+for v in OK PARTIAL FAIL; do
+  assert_has "$VER" "VERDICT: $v" "verify-acceptance emits VERDICT: $v"
+  assert_has "$RUN" "VERDICT: $v" "atdd-run branches on VERDICT: $v"
+done
+assert_has  "$RUN" "ESCALATED: verify found" "atdd-run escalates verify failures with the ESCALATED phrase"
+assert_has  "$VER" "WEAKENED-TEST"           "verify-acceptance flags weakened tests"
+assert_has  "$APF" "WEAKENED-TEST"           "apply-pr-feedback forbids the test weakening verify flags"
+assert_has  "$RUN" "atdd-scenario"           "atdd-run dispatches the atdd-scenario agent"
+assert_has  "$RUN" "atdd-merge"              "atdd-run dispatches the atdd-merge agent"
+assert_has  "$RUN" "atdd-verify"             "atdd-run dispatches the atdd-verify agent"
+assert_has  "$WF"  "isolation: 'worktree'"   "workflow sets worktree isolation (atdd-scenario frontmatter does not)"
+echo
+
 echo "----------------------------------------"
 printf 'contracts: %s passed, %s failed\n' "$(green "$pass")" "$( [ "$fail" -gt 0 ] && red "$fail" || echo "$fail")"
 [ "$fail" -eq 0 ]
