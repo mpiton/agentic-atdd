@@ -4,6 +4,10 @@ All notable changes to this plugin land here. Format follows [Keep a Changelog](
 
 ## [Unreleased]
 
+### Added
+
+- `from-linear` skill (`/from-linear <ticket-id>`) — third entry point next to `impact-map` and `from-issue`. Imports a Linear card by identifier (e.g. `ENG-123`): resolves an access path at runtime (Linear MCP tools → `linear` CLI on PATH → GraphQL API with `LINEAR_API_KEY`), parses the description and comments into `specs/<us-slug>/context.md`, interviews for the missing actor/action/data/test-level fields, and leaves one back-link comment on the card. GitHub Issues stays the pipeline database: unlike `from-issue` it does not seed `issues.json`, so `to-issues-atdd` creates the parent and US fresh.
+
 ## [0.2.0] — 2026-06-02
 
 ### Added

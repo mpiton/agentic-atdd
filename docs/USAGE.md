@@ -79,6 +79,18 @@ If you want the whole chain after `from-issue`:
 
 Same result, fewer keystrokes. The orchestrator stops at the two human gates.
 
+### Variant — the ticket lives in Linear
+
+Same situation, different tracker:
+
+```bash
+/from-linear ENG-123
+```
+
+The skill resolves an access path in this order: Linear MCP tools in the session, a `linear` CLI on PATH, then the GraphQL API with `LINEAR_API_KEY`. If none works it stops and tells you what to set up — it never reconstructs the card from memory.
+
+Two differences with `/from-issue`: GitHub Issues still becomes the database (`/to-issues-atdd` creates the parent and US fresh, since there's no GitHub issue to reuse), and the Linear card only gets a back-link comment — its state, title, and labels stay untouched. From `context.md` on, the flow is identical to Case A.
+
 ---
 
 ## Case B — fresh feature, PRD and architecture in hand

@@ -29,6 +29,7 @@
   "skills": [
     { "name": "impact-map",          "path": "skills/spec/impact-map/SKILL.md" },
     { "name": "from-issue",          "path": "skills/spec/from-issue/SKILL.md" },
+    { "name": "from-linear",         "path": "skills/spec/from-linear/SKILL.md" },
     { "name": "spec-generate",       "path": "skills/spec/spec-generate/SKILL.md" },
     { "name": "spec-review",         "path": "skills/spec/spec-review/SKILL.md" },
     { "name": "to-issues-atdd",      "path": "skills/sync/to-issues-atdd/SKILL.md" },
@@ -46,6 +47,7 @@
     { "name": "setup-atdd-pipeline", "skill": "setup-atdd-pipeline" },
     { "name": "impact-map",          "skill": "impact-map" },
     { "name": "from-issue",          "skill": "from-issue" },
+    { "name": "from-linear",         "skill": "from-linear" },
     { "name": "spec-generate",       "skill": "spec-generate" },
     { "name": "spec-review",         "skill": "spec-review" },
     { "name": "to-issues-atdd",      "skill": "to-issues-atdd" },

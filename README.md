@@ -8,7 +8,7 @@ The skills are small. You can read any one of them in under a minute, fork it, s
 
 ## What it does
 
-You give the pipeline a story (or import a GitHub issue you already wrote). It:
+You give the pipeline a story (or import a ticket you already wrote — GitHub issue or Linear card). It:
 
 1. Interviews you on the business rules until they're concrete enough to test.
 2. Generates Gherkin scenarios tagged by test level (`@use-case`, `@e2e`, `@ui`) and by branch (`@nominal`, `@violation`, `@auth`, `@technical`, `@limit`).
@@ -56,6 +56,7 @@ Writes `.atdd-pipeline.json` at the repo root. Auto-merge is on by default, the 
 
 - [`impact-map`](skills/spec/impact-map/SKILL.md) — capture a story, an actor, a goal, business rules numbered `R-NN`.
 - [`from-issue`](skills/spec/from-issue/SKILL.md) — import an existing GitHub issue. The issue you already wrote stays; the pipeline back-fills `context.md` from its body.
+- [`from-linear`](skills/spec/from-linear/SKILL.md) — import a Linear ticket. Fetches the card via Linear MCP, CLI, or GraphQL API (first one available), back-fills `context.md`; GitHub Issues still hosts the work breakdown.
 - [`spec-generate`](skills/spec/spec-generate/SKILL.md) — Gherkin scenarios from the context, one feature file per rule.
 - [`spec-review`](skills/spec/spec-review/SKILL.md) — read-only audit of the scenarios across four axes (branches, coherence, gaps, triangulation).
 
@@ -85,6 +86,7 @@ Writes `.atdd-pipeline.json` at the repo root. Auto-merge is on by default, the 
 | `/setup-atdd-pipeline` | One-time per-repo config. |
 | `/impact-map` | Capture a new story. |
 | `/from-issue <N>` | Import an existing GitHub issue. |
+| `/from-linear <ID>` | Import a Linear ticket (e.g. `ENG-123`). |
 | `/spec-generate` | Gherkin scenarios from the context. |
 | `/spec-review` | Read-only review of the scenarios. |
 | `/to-issues-atdd` | Sync to GitHub Issues + create the integration branch. |
