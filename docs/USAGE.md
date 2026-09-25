@@ -75,7 +75,7 @@ When every scenario is in, check the result by hand before opening the final PR:
 /verify-acceptance <us-slug>
 ```
 
-It starts your app and plays each scenario the way a QA would: a real browser for `@ui`, real HTTP or CLI calls for `@e2e`, a throwaway script for `@use-case`. It falls back to reading the code only when the app won't start. It doesn't read the tests first, so a scenario the tests misread still shows up. It also smoke-tests the existing flows the diff touched and flags any test that was weakened on the way. The report lands in `specs/<us-slug>/verify.md` and ends with `VERDICT: OK | PARTIAL | FAIL`.
+It starts your app when at least one scenario is `@ui` or `@e2e`, then plays each merged scenario the way a QA would (escalated ones are skipped): a real browser for `@ui`, real HTTP or CLI calls for `@e2e`, a throwaway script for `@use-case`. It falls back to reading the code when the app won't start or the scenario's method isn't available, such as no browser in the session. It doesn't read the tests first, so a scenario the tests misread still shows up. It also smoke-tests the existing flows the diff touched and flags any test that was weakened on the way. The report lands in `specs/<us-slug>/verify.md` and ends with `VERDICT: OK | PARTIAL | FAIL`.
 
 Then the orchestrator opens the final PR from the integration branch to `main` and stops. That PR is the one you review and merge yourself.
 
@@ -85,7 +85,7 @@ If you want the whole chain after `from-issue`:
 /atdd-run <us-slug>
 ```
 
-Same result, fewer keystrokes. The orchestrator stops at the two human gates. Each scenario runs in its own subagent, so a story with ten scenarios doesn't fill your session's context.
+Same result, fewer keystrokes. The orchestrator stops at the two human gates. On Claude Code each scenario runs in its own subagent, so a story with ten scenarios doesn't fill your session's context.
 
 ### Variant — the ticket lives in Linear
 
@@ -97,7 +97,7 @@ Same situation, different tracker:
 
 The skill resolves an access path in this order: Linear MCP tools in the session, a `linear` CLI on PATH, then the GraphQL API with `LINEAR_API_KEY`. If none works it stops and tells you what to set up — it never reconstructs the card from memory.
 
-Two differences with `/from-issue`: GitHub Issues still becomes the database (`/to-issues-atdd` creates the parent and US fresh, since there's no GitHub issue to reuse), and the Linear card only gets a back-link comment — its state, title, and labels stay untouched. From `context.md` on, the flow is identical to Case A.
+Two differences with `/from-issue`: GitHub Issues still becomes the database (`/to-issues-atdd` creates the parent and US fresh, since there's no GitHub issue to reuse), and the Linear card gets at most one back-link comment, skipped when the access path is read-only. Its state, title, labels and assignee stay untouched. From `context.md` on, the flow is identical to Case A.
 
 ---
 
@@ -234,7 +234,7 @@ The repo holds:
 - `specs/<us-slug>/verify.md` — the hands-on verification report and its `VERDICT:` line.
 - `specs/<us-slug>/.cycles/verify/` — screenshots, request logs, script output and the app log behind that report.
 
-You commit all of it. The pipeline reads these files when you resume.
+You commit all of it except `.cycles/verify/`, which holds raw app logs and screenshots: keep that folder out of git. The pipeline reads these files when you resume.
 
 ---
 
@@ -242,7 +242,7 @@ You commit all of it. The pipeline reads these files when you resume.
 
 The same `SKILL.md` files work on both harnesses. Two behavioural differences:
 
-- Parallel reviewers run via the `Agent` tool on Claude Code (formerly `Task`; the alias still works). Under Codex, there's no `Agent` tool, so the orchestrator runs the reviewers sequentially in the same session. You can force this anywhere with `--sequential`.
+- Reviewers run in parallel via the `Agent` tool (formerly `Task`; the alias still works) only when `green-cycle` runs in the orchestrator session. Under Codex there's no `Agent` tool, so they run sequentially in the same session. You can force this anywhere with `--sequential`.
 - On Claude Code each scenario runs in its own subagent (`atdd-scenario`, then `atdd-merge`), and verify runs in `atdd-verify`, so the orchestrator only keeps short reports. A subagent can't start another one, so inside a scenario the two green reviewers run one after the other. Under Codex the skills run inline in one session; on a long story, `/clear` between scenarios and resume with `--from-stage red`.
 
 Everything else is identical. The plugin lives in one folder, symlinked to both `~/.claude/skills/` and `~/.codex/skills/`.

@@ -10,7 +10,7 @@ No `tools` restriction on purpose: you need whatever browser tools the session e
 
 - **Main checkout, no worktree.** Launching the app needs the gitignored env files and installed dependencies that only the main checkout has.
 - **Blind to the tests.** Rule zero of the skill. The orchestrator will not paste test content into your prompt; do not go looking for it before every scenario has a verdict.
-- **Don't end your turn to wait.** Start the app with `setsid … &` as the skill shows and poll readiness in the foreground. Ending your turn returns control to the orchestrator before the report exists.
+- **Don't end your turn to wait.** Start the app in the background as the skill shows (`set -m` subshell) and poll readiness in the foreground. Ending your turn returns control to the orchestrator before the report exists.
 - **Leave it as you found it.** Stop the app and delete the throwaway scripts before returning, even when you abort early.
 
 Report back: the `VERDICT:` line, the report path (`specs/<us-slug>/verify.md`), and one line per scenario — issue number, verdict, method.

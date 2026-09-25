@@ -46,7 +46,7 @@ Ask, in order. If the answer is unclear, push back; do NOT guess.
     - `bot_logins` — extra login allowlist beyond GitHub's `user.type == "Bot"` (defaults include `coderabbitai`, `coderabbitai[bot]`, `github-actions[bot]`, `codex`, `codex-bot`).
 12. **Verify (Stage 3.5).** How `verify-acceptance` launches the app to check the story by hand. Every field optional; skip them and the verifier discovers the command from `package.json`, `Makefile`, `docker compose` or the README.
     - `start_command` — e.g. `pnpm dev`.
-    - `base_url` — e.g. `http://localhost:3000`.
+    - `base_url` — e.g. `http://localhost:3000`. Must be a loopback URL.
     - `ready_check` — command that exits 0 once the app is up, e.g. `curl -sf http://localhost:3000/health`.
 
 ## Output
@@ -91,13 +91,11 @@ Write `.atdd-pipeline.json` at the repo root:
       "codex-bot"
     ]
   },
-  "verify": {
-    "start_command": "pnpm dev",
-    "base_url": "http://localhost:3000",
-    "ready_check": "curl -sf http://localhost:3000/health"
-  }
+  "verify": {}
 }
 ```
+
+Write only the `verify` fields the user gave (item 12). An empty object lets the verifier discover this project's command and port.
 
 ## Idempotency
 
@@ -110,6 +108,7 @@ If `.atdd-pipeline.json` already exists, read it, present the current values, as
 - `paths.context` exists. If not, suggest invoking `grill-with-docs` to bootstrap it.
 - `trunk_branch` exists locally and on the remote (`git rev-parse --verify origin/<trunk>`). Warn otherwise.
 - `auto_merge.enabled == true` AND `gh pr merge --help` supports the chosen `merge_method` flag.
+- `.gitignore` covers `<paths.specs>*/.cycles/verify/` (raw app logs and screenshots from Stage 3.5). Offer to add the line if not.
 
 ## Handoff
 

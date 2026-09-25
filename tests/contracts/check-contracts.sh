@@ -137,9 +137,10 @@ echo
 
 echo "[10] Non-blocking watch + interview dedup + conventions cache (R5/R9)"
 SGEN="skills/spec/spec-generate/SKILL.md"
-assert_hasE "$PAM"  "Monitor|run_in_background|background" "pr-auto-merge watch is non-blocking on Claude Code"
+assert_hasE "$PAM"  "Monitor|run_in_background|background" "pr-auto-merge watch is non-blocking inline on Claude Code"
 assert_hasE "$PAM"  "[Rr]e-entran|re-derive"               "pr-auto-merge watch re-derives state on resume"
-assert_hasE "$PAM"  "--watch"                              "pr-auto-merge keeps the blocking watch as Codex fallback"
+assert_hasE "$PAM"  "--watch"                              "pr-auto-merge keeps the blocking watch"
+assert_has  "$PAM"  "Inside a subagent"                    "pr-auto-merge blocks when run inside a subagent (atdd-merge)"
 assert_hasE "$SGEN" "do NOT re-ask|answered ground|thread them forward" "spec-generate forwards captured fields instead of re-interviewing"
 assert_has  "$WF"   "conventions"                          "workflow accepts a conventions cache for fan-out agents"
 echo
@@ -149,17 +150,26 @@ VER="skills/execute/verify-acceptance/SKILL.md"
 AG_VER="agents/atdd-verify.md"
 assert_file "$VER"    "verify-acceptance skill shipped"
 assert_file "$AG_VER" "atdd-verify agent shipped"
-assert_hasE "$AG_VER" "^name: atdd-verify" "atdd-verify agent name matches the dispatch name"
+assert_hasE "$AG_VER" "^name: atdd-verify$" "atdd-verify agent name matches the dispatch name"
+assert_hasE "$VER" "^VERDICT: OK \| PARTIAL \| FAIL$" "verify-acceptance report ends with the VERDICT line"
+assert_has  "$RUN" "last line of \`specs/<us-slug>/verify.md\`" "atdd-run reads the VERDICT from the last line of verify.md"
 for v in OK PARTIAL FAIL; do
   assert_has "$VER" "VERDICT: $v" "verify-acceptance emits VERDICT: $v"
   assert_has "$RUN" "VERDICT: $v" "atdd-run branches on VERDICT: $v"
 done
 assert_has  "$RUN" "ESCALATED: verify found" "atdd-run escalates verify failures with the ESCALATED phrase"
-assert_has  "$VER" "WEAKENED-TEST"           "verify-acceptance flags weakened tests"
-assert_has  "$APF" "WEAKENED-TEST"           "apply-pr-feedback forbids the test weakening verify flags"
-assert_has  "$RUN" "atdd-scenario"           "atdd-run dispatches the atdd-scenario agent"
-assert_has  "$RUN" "atdd-merge"              "atdd-run dispatches the atdd-merge agent"
-assert_has  "$RUN" "atdd-verify"             "atdd-run dispatches the atdd-verify agent"
+for m in WEAKENED-TEST REGRESSION UNVERIFIED; do
+  assert_has "$VER" "$m" "verify-acceptance emits $m"
+  assert_has "$RUN" "$m" "atdd-run handles $m"
+done
+assert_has  "$APF" "Do NOT weaken an acceptance test" "apply-pr-feedback forbids the test weakening verify flags"
+assert_has  "$PAM" "Never weaken an acceptance test"  "pr-auto-merge CI triage forbids the test weakening verify flags"
+for a in atdd-scenario atdd-merge atdd-verify; do
+  assert_has "$RUN" "subagent_type: \"$a\"" "atdd-run dispatches the $a agent"
+done
+for f in "$AG_SCN" "$AG_MRG" "$AG_VER"; do
+  if hasE "$f" "^isolation:"; then ko "$f sets no isolation in frontmatter"; else ok "$f sets no isolation in frontmatter"; fi
+done
 assert_has  "$WF"  "isolation: 'worktree'"   "workflow sets worktree isolation (atdd-scenario frontmatter does not)"
 echo
 

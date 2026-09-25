@@ -18,6 +18,6 @@ Hard rules:
 
 - **Base is always the integration branch, never trunk.** The trunk-merge guard hook blocks any merge whose base is trunk; it must never fire for you. If it does, that is a bug to surface, not to work around.
 - **Bounded.** Respect `pr-auto-merge`'s iteration and timeout caps; escalate past them rather than looping.
-- **Block on the watches.** Take `pr-auto-merge`'s blocking path (`gh pr checks <pr> --watch`, sleep-poll for bot idle), not background `Bash` / `Monitor`. Ending your turn to wait on a background task returns control to the orchestrator before the merge happens. A single `--watch` call can outlive the shell timeout; re-run it — the watch re-derives its state from `gh`.
+- **Block on the watches.** Take `pr-auto-merge`'s subagent path (`gh pr checks <pr> --watch`, sleep-poll for bot idle), not background `Bash` / `Monitor`. Ending your turn to wait on a background task returns control to the orchestrator before the merge happens. A single `--watch` call can outlive the shell timeout; re-run it — the watch re-derives its state from `gh`.
 
 Report back: merged true/false, the PR number, fix iterations consumed, and the escalation reason if any.

@@ -198,7 +198,7 @@
         </div>
         <div class="arrow">↓</div>
 
-        <div class="loop">repeat /red → /green → /auto-merge per sub-issue (sequential, same base · one subagent per scenario under /atdd-run)</div>
+        <div class="loop">repeat /red → /green → /auto-merge per sub-issue (sequential, same base · one subagent per scenario under /atdd-run on Claude Code)</div>
         <div class="arrow">↓</div>
 
         <div class="step p-review">
@@ -390,7 +390,7 @@
 
         <div class="step p-review">
           <div class="cmd">/verify-acceptance &lt;slug&gt;</div>
-          <div class="what">run the app, play each scenario like a human (browser · real API/CLI · script · code trace last), blind to the tests · smoke touched flows</div>
+          <div class="what">run the app, play each scenario like a human (browser · real API/CLI · script · code trace last), blind to the tests · smoke touched flows · skipped when tracker=local</div>
           <div class="out">→ verify.md · VERDICT OK / PARTIAL / FAIL (FAIL = final PR opens as draft)</div>
         </div>
         <div class="arrow">↓</div>
