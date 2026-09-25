@@ -7,13 +7,13 @@
     "email": "matpiton@protonmail.com",
     "url": "https://github.com/mpiton"
   },
-  "version": "0.2.0",
+  "version": "0.3.0",
   "plugins": [
     {
       "name": "atdd-pipeline",
       "source": "./",
       "description": "Multi-agent ATDD pipeline: impact map -> Gherkin -> GitHub Issues -> RED/GREEN with parallel reviewers and autonomous sub-PR merging. Two human gates: spec, and the final PR.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": {
         "name": "Mathieu Piton",
         "url": "https://github.com/mpiton"
