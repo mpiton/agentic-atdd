@@ -64,7 +64,7 @@ Stop when both report `OK`, or when the counter reaches 2.
 
 ### 4. Escalate or hand off
 
-- If both `VERDICT: OK` within 2 attempts: commit with message `green(<R-NN>): minimal impl for <scenario title>`. Push the branch. Open a draft PR linking the scenario issue.
+- If both `VERDICT: OK` within 2 attempts: commit with message `green(<R-NN>): minimal impl for <scenario title>`, staging only the production files this cycle touched (never `git add -A`, never `specs/<us-slug>/`). Push the branch. Open a draft PR linking the scenario issue.
   - **Base branch:** read `integration_branch` from `specs/<us-slug>/issues.json` (fallback: resolve via `.atdd-pipeline.json:integration_branch_pattern`). The PR MUST target the integration branch, NEVER `trunk_branch` directly.
   - Command shape: `gh pr create --draft --base <integration_branch> --head <scenario_branch> --title "..." --body "Closes #<issue-number>"`.
 - If either reviewer is still `REGENERATE` after 2 attempts: post a comment on the issue containing:
@@ -72,7 +72,7 @@ Stop when both report `OK`, or when the counter reaches 2.
   - The diffs of the 2 attempts.
   - The phrase `ESCALATED: green-cycle exhausted auto-correction.`
 
-  Leave the branch in place. Do NOT open a PR. Return.
+  Commit the leftover work as `wip: escalated at green` with the same staging rule, no push, so the next scenario starts from a clean tree. Leave the branch in place. Do NOT open a PR. Return.
 
 ### 5. Hand off to auto-merge (default) or human checkpoint #2 (fallback)
 

@@ -15,7 +15,9 @@ End-to-end driver for the ATDD pipeline. Chains every phase. Stops at two hard h
 1. **Checkpoint #1 — post-spec.** Before any code is written.
 2. **Checkpoint #2 — final integration PR.** When all scenario sub-PRs are merged into the integration branch and the final PR `integration → trunk` is opened.
 
-Every scenario sub-PR in between is handled autonomously by [`pr-auto-merge`](../../execute/pr-auto-merge/SKILL.md): CI watch, bot idle watch, `/apply-pr-feedback` on retours (bounded), then auto-merge into the integration branch. No per-scenario human prompt.
+Every scenario sub-PR in between is handled autonomously by [`pr-auto-merge`](../../execute/pr-auto-merge/SKILL.md): CI watch, bot idle watch, `/apply-pr-feedback` on retours (bounded), then auto-merge into the integration branch. No per-scenario human prompt. Each scenario runs in its own subagent, so the orchestrator's context stays flat however many scenarios the story has.
+
+Before checkpoint #2, Stage 3.5 verifies the integrated story hands-on, the way a human would: real UI, real interface, blind to the tests.
 
 ## When to use
 
@@ -28,8 +30,8 @@ Trigger when the user provides a user-story slug (e.g. `/atdd-run cart-checkout`
   - `--sequential` — run reviewers serially instead of in parallel (Codex fallback).
   - `--stage3=<sequential|workflow>` — Stage 3 execution mode. Overrides `.atdd-pipeline.json:stage3_mode`. Default `sequential`. `workflow` is the opt-in parallel path and is ignored (falls back to sequential) when the Workflow tool is unavailable.
   - `--dry-run` — generate scenarios + show issue plan, do not create issues, do not write code.
-  - `--from-stage <spec|sync|red|green|auto-merge|final-pr>` — resume from a specific phase.
-  - `--no-auto-merge` — temporarily disable `pr-auto-merge` for this run; falls back to the legacy per-scenario human checkpoint #2 inside `green-cycle`.
+  - `--from-stage <spec|sync|red|green|auto-merge|verify|final-pr>` — resume from a specific phase.
+  - `--no-auto-merge` — temporarily disable `pr-auto-merge` for this run; falls back to the legacy per-scenario human checkpoint #2 inside `green-cycle`. That checkpoint needs the human in the loop, so Stage 3 then runs in *inline mode* instead of dispatching agents. `.atdd-pipeline.json:auto_merge.enabled: false` does the same for every run.
 
 ## Workflow
 
@@ -58,7 +60,7 @@ Run [`to-issues-atdd`](../../sync/to-issues-atdd/SKILL.md). Idempotent. Creates:
 
 Output: a JSON manifest `specs/<us-slug>/issues.json` mapping `scenario-slug → issue-number`.
 
-### Stage 3 — Execute (skills: `red-cycle`, `green-cycle`, `pr-auto-merge`)
+### Stage 3 — Execute (skills: `red-cycle`, `green-cycle`, `pr-auto-merge`; agents: `atdd-scenario`, `atdd-merge`)
 
 Stage 2 already provisioned the integration branch `atdd/<us-slug>/integration` and wrote it to `issues.json`.
 
@@ -66,18 +68,29 @@ Stage 3 has two execution modes. Pick with `.atdd-pipeline.json:stage3_mode` (`s
 
 #### Sequential mode (default)
 
-For each sub-issue in `issues.json.scenarios`, iterate **sequentially** — sub-PRs target the same integration branch, so concurrency would race the merge queue:
+**Context isolation.** Each scenario runs in its own subagent, so the orchestrator never carries a RED/GREEN transcript, a CI log or a bot thread. The orchestrator holds only `run-state.json` and each agent's short report; a ten-scenario story costs it about as much context as a two-scenario one. A subagent cannot spawn subagents, so the hierarchy stays flat: the orchestrator dispatches, the agents run the skills.
 
-1. Run [`red-cycle <issue>`](../../execute/red-cycle/SKILL.md). Generates failing test + runs `review-fidelity`. Bounded auto-correct ×2 then escalate (comment on issue, skip to next scenario).
-2. Run [`green-cycle <issue>`](../../execute/green-cycle/SKILL.md). Generates minimal implementation + runs `review-architecture` and `review-intent` (parallel by default). Bounded auto-correct ×2 then escalate. On success: opens a **draft PR targeting the integration branch**.
-3. Hand the PR number to [`pr-auto-merge <pr>`](../../execute/pr-auto-merge/SKILL.md). It will:
+For each sub-issue in `issues.json.scenarios` not already `merged` or `escalated` in `run-state.json` (reconciled against GitHub, see *Run state*), iterate **sequentially**, one agent at a time, in the main checkout — sub-PRs target the same integration branch, so concurrency would race the merge queue. A scenario that already has an open PR skips Produce and goes straight to Merge. One stopped at `red` or `green` goes to Produce: `red-cycle` reuses its branch and skips RED when the `red(` commit is there.
+
+1. **Produce.** Dispatch the [`atdd-scenario`](../../../agents/atdd-scenario.md) agent with the `Agent` tool (`subagent_type: "atdd-scenario"`; a `/plugin` install may namespace it as `atdd-pipeline:atdd-scenario`). No `isolation`: the agent works in the main checkout, which has the env files and installed dependencies. Prompt: issue number, scenario slug, scenario branch, integration branch, path to the `.feature`. The agent runs:
+   - [`red-cycle <issue>`](../../execute/red-cycle/SKILL.md) — failing test + `review-fidelity`. Bounded auto-correct ×2 then escalate.
+   - [`green-cycle <issue>`](../../execute/green-cycle/SKILL.md) — minimal implementation + `review-architecture` and `review-intent`. Bounded auto-correct ×2 then escalate. On success: opens a **draft PR targeting the integration branch**.
+
+   It returns the PR number, or the escalation reason and phase. Write `run-state.json` now: `phase: "auto-merge"` and the PR number. On escalation, apply *Failure escalation*, skip Merge and go to the next scenario.
+2. **Merge.** Dispatch the [`atdd-merge`](../../../agents/atdd-merge.md) agent (`subagent_type: "atdd-merge"`) with the PR number and the integration branch. It runs [`pr-auto-merge <pr>`](../../execute/pr-auto-merge/SKILL.md), which will:
    - Mark the PR ready.
    - Watch CI to completion.
    - Watch bot reviewers (CodeRabbit, codex, github-actions, etc.) until an `idle_window_minutes` quiet period has elapsed.
    - If actionable bot feedback exists, invoke [`apply-pr-feedback`](../../execute/apply-pr-feedback/SKILL.md) (bundled with this plugin), push, and loop. Capped by `max_fix_iterations`.
    - When CI is green AND no `CHANGES_REQUESTED` AND no actionable bot comments remain: `gh pr merge --squash --delete-branch`.
-   - Escalates (comment on PR, leave open) on any timeout / exhausted fix iterations / failing CI it could not repair.
-4. After auto-merge succeeds, move to the next scenario. On escalation, record the PR number in `specs/<us-slug>/escalations.md` and continue with remaining scenarios (do NOT abort the whole pipeline).
+   - Escalate (comment on PR, leave open) on any timeout / exhausted fix iterations / failing CI it could not repair.
+
+   It returns merged true/false, the fix iterations, and the escalation reason if any.
+3. **Record.** Write the merge report into `run-state.json`. On merge, move to the next scenario. On escalation, apply *Failure escalation* and continue with the remaining scenarios (do NOT abort the whole pipeline).
+
+Do not pull an agent's diff, test files or logs back into the orchestrator. If a report is unclear, ask GitHub (`gh pr view <pr> --json state,mergedAt`), not the transcript.
+
+**Inline mode: Codex, no `Agent` tool, `--no-auto-merge`, or `auto_merge.enabled == false`.** Run the same skills inline in this session: `red-cycle`, then `green-cycle`, whose step 5 hands the PR to `pr-auto-merge` or to the MERGE/CHANGE/SKIP checkpoint. To keep the context bounded on a long story, `/clear` between scenarios and re-enter with `/atdd-run <us-slug> --from-stage red`; `run-state.json` carries the progress.
 
 #### Workflow mode (opt-in, experimental — Claude Code only)
 
@@ -91,9 +104,24 @@ When `stage3_mode == "workflow"` **and** the Workflow tool is available (dynamic
 
 The human gates stay OUTSIDE the workflow: checkpoint #1 (spec) already happened before Stage 3; checkpoint #2 (final PR) happens in Stage 4 after the workflow returns. Dynamic workflows take no mid-run human input, which is why the gates must bracket Stage 3, never sit inside it. This mode is experimental and opt-in; the sequential loop is the supported default until it has real-repo mileage.
 
-**Write `run-state.json` after every phase boundary** of every scenario (after RED commits, after the draft PR opens, after merge, after escalation), in both modes. This is what makes a multi-hour run crash-resumable rather than restart-from-scratch — see *Run state*. The per-scenario phase transitions are the only durable record of where a fanned-out or interrupted run actually stopped.
+**Write `run-state.json` after every phase boundary** of every scenario (after RED commits, after the draft PR opens, after merge, after escalation), in both modes. In sequential mode the agents never write it: the orchestrator writes it each time an agent returns, and `red-cycle`'s commit check covers a crash inside a scenario. This is what makes a multi-hour run crash-resumable rather than restart-from-scratch — see *Run state*. The per-scenario phase transitions are the only durable record of where a fanned-out or interrupted run actually stopped.
 
 There is **no per-scenario human checkpoint** in Stage 3. This is the explicit goal of `auto_merge.enabled == true`.
+
+### Stage 3.5 — Verify (skill: `verify-acceptance`; agent: `atdd-verify`)
+
+Green CI proves the code does what the tests say. This stage checks that the integrated story does what the spec says, the way a human would: drive the UI for `@ui`, hit the real interface for `@e2e`, script the use case for `@use-case`, and trace the code only when the app cannot run. The verifier never reads the acceptance tests before its verdicts.
+
+Run it once, on the integration tip, after every scenario is `merged` or `escalated`. Skip it when no scenario merged: there is nothing to verify.
+
+1. Delete any previous `specs/<us-slug>/verify.md`, `git fetch origin <integration_branch>`, and note `git rev-parse origin/<integration_branch>`. Then dispatch the [`atdd-verify`](../../../agents/atdd-verify.md) agent (`subagent_type: "atdd-verify"`, no `isolation`) with the us-slug, the integration branch and `trunk_branch`. Do not paste test files or sub-PR diffs into its prompt. Codex, or no `Agent` tool: run [`verify-acceptance <us-slug>`](../../execute/verify-acceptance/SKILL.md) inline.
+2. Read the last line of `specs/<us-slug>/verify.md`. Accept it only when the report's `Integration: <branch> @ <sha>` line matches the tip noted in step 1. A missing report, no `VERDICT:` line or another SHA counts as `VERDICT: FAIL` with reason `no verify report`: post a comment on the US issue with `ESCALATED: verify could not produce a report.` Write `run-state.json:verify` with the verdict and the noted SHA (see *Run state*), so Stage 4 does not loop back here.
+3. Branch on the verdict:
+   - `VERDICT: OK` → Stage 4.
+   - `VERDICT: PARTIAL` → Stage 4. The final PR body lists each `UNVERIFIED` scenario with its reason, so the reviewer checks it by hand.
+   - `VERDICT: FAIL` → post the comments below, send a best-effort `PushNotification`, then Stage 4. `verify-acceptance` never writes to GitHub, so the orchestrator posts the comments itself: one on the issue of each `FAIL` scenario with `ESCALATED: verify found behavior diverging from the scenario.`, one on the US issue per `REGRESSION` or `WEAKENED-TEST` with `ESCALATED: verify found a regression outside this story's scenarios.` Each comment quotes the expected-vs-observed lines and the evidence path from `verify.md`. There is no `escalations.md` entry: the scenarios did merge, so `run-state.json:verify` and `verify.md` are the record.
+
+No auto-fix. A `FAIL` means a scenario's test missed a behavior; the human decides, and the fix goes back through `red-cycle` with the finding so a test captures it first. The scenario keeps `status: "merged"` — its code did merge. The verdict lives in `run-state.json:verify`, not in the scenario status.
 
 ### Stage 4 — Final integration PR (terminal stop)
 
@@ -102,34 +130,37 @@ After every scenario in `issues.json.scenarios` has either been merged into the 
 1. **Classify every scenario** from `run-state.json` (see *Run state*) reconciled against GitHub into exactly one of `merged`, `escalated`, `unmerged`:
    - If ANY scenario is `unmerged` (neither merged nor escalated), REFUSE to proceed. The run is not finished; resume the unmerged scenarios first.
    - `escalated` scenarios do NOT block the final PR, but they MUST be surfaced — an escalated scenario is a hole in the user story, and shipping it silently into the trunk PR is the failure this step exists to prevent.
+   - **Verify must be current.** When at least one scenario merged, `git fetch origin <integration_branch>` first. If `run-state.json:verify` is missing, or its `sha` differs from `git rev-parse origin/<integration_branch>`, run Stage 3.5 first.
 2. Push the integration branch tip (it already has all merged scenario commits via squash merges).
 3. Open a single PR `atdd/<us-slug>/integration → trunk_branch`:
    - Title: `[US] <us-slug>: <Goal sentence>`.
-   - **Draft status:** open it as a **draft** when `escalated.length > 0`, otherwise ready. A draft can't be fast-merged, which keeps an incomplete US from slipping past the human gate (and dovetails with the trunk-merge guard hook).
-   - Body: aggregated summary — goal, list of scenarios (each linking its sub-PR). When `escalated.length > 0`, the body MUST LEAD with a blocking section:
+   - **Blockers.** Build one list: escalated scenarios first, then verify `FAIL` scenarios, `REGRESSION` and `WEAKENED-TEST` lines, and `no verify report`. When the list is non-empty, open the PR as a **draft** and make the body LEAD with it. A draft can't be fast-merged, which keeps an incomplete or diverging US from slipping past the human gate (and dovetails with the trunk-merge guard hook).
 
      ```text
-     ## ⚠️ Incomplete — <N> scenario(s) escalated, not implemented
+     ## ⚠️ Blockers
 
-     This user story is NOT fully delivered. The following scenarios exhausted
-     auto-correction and were skipped:
-     - #<issue> <title> — see specs/<us-slug>/escalations.md
-     ...
-     Resolve or consciously accept each before merging into <trunk_branch>.
+     This user story is NOT ready for <trunk_branch>. Resolve or consciously accept each item before merging:
+     - #<issue> <title> — escalated at <phase>, not implemented: <reason>
+     - #<issue> <title> — verify FAIL: expected <x>, observed <y>
+     - REGRESSION: <entry point> — <what broke>
+     - WEAKENED-TEST: <file:line> — <what changed>
+     - verify could not produce a report
      ```
 
-     Then the normal summary and a link to `specs/<us-slug>/` artifacts.
+   - Body, after any Blockers: goal, list of scenarios (each linking its sub-PR), then a **Verification** section with one line per scenario (`#<issue> — <verdict> · <method>`, with the reason for each `UNVERIFIED`). It must stand alone: `verify.md` stays local, since committing it would move the integration tip past the verified SHA. When Stage 3.5 ran, name it as the local report. When no scenario merged, write that no scenarios were verified. Then a link to `specs/<us-slug>/` artifacts.
    - Labels: `atdd`, `us/<us-slug>`, `integration`; add `incomplete` when `escalated.length > 0`.
 4. **HARD STOP. Checkpoint #2 — Human gate on the trunk PR.** Do NOT invoke `pr-auto-merge` here. `pr-auto-merge` refuses to operate on PRs whose base is `trunk_branch` by contract, and the trunk-merge guard hook blocks it deterministically. Draft status is a guardrail, not the gate — the human still reviews and promotes.
-5. Print the PR URL (and, if drafted, the escalated-scenario list) and return.
+5. Print the PR URL, the verify verdict and, if drafted, the escalated or failing scenarios, then return.
 
 ## Parallelism
 
-When `parallel: true` (default), Stage 3 reviewers run via the `Agent` tool on Claude Code (formerly `Task`; the alias still works). With `--sequential` (or under Codex), reviewers are invoked in series within the same session.
+Scenario work runs in subagents (`atdd-scenario`, `atdd-merge`, `atdd-verify`). A subagent cannot spawn subagents, so inside a scenario agent `green-cycle`'s two reviewers run one after the other. That is the price of a flat orchestrator context; it costs wall-clock time, not review depth. Parallelism across scenarios comes from workflow mode (one worktree per scenario).
+
+When the skills run in *inline mode*, `parallel: true` (default) lets `green-cycle` run its reviewers via the `Agent` tool (formerly `Task`; the alias still works). With `--sequential` (or under Codex), reviewers are invoked in series within the same session.
 
 ## Failure escalation
 
-An escalation is a first-class signal, not a buried comment. In a sequential run the orchestrator sees each one inline; the moment Stage 3 fans out (workflow mode), a single blocked scenario is easy to miss, so escalation has one contract the orchestrator owns end to end.
+An escalation is a first-class signal, not a buried comment. In a sequential run the orchestrator reads each one in an agent report; the moment Stage 3 fans out (workflow mode), a single blocked scenario is easy to miss, so escalation has one contract the orchestrator owns end to end.
 
 Every escalation does four things:
 
@@ -168,14 +199,21 @@ Shape:
       "attempts": { "red_fidelity": 0, "green_review": 0, "fix_iterations": 0 },
       "updated_at": "<iso8601>"
     }
+  },
+  "verify": {
+    "verdict": "OK | PARTIAL | FAIL",
+    "sha": "<integration tip the verdict applies to>",
+    "report": "specs/cart-checkout/verify.md",
+    "at": "<iso8601>"
   }
 }
 ```
 
-Two rules:
+Three rules:
 
 1. **Write after every transition.** The orchestrator rewrites the relevant scenario entry the moment a phase boundary is crossed (RED committed, draft PR opened, merged, escalated). Never batch the writes to the end — the value is entirely in surviving an interruption.
 2. **Reconcile against GitHub on resume, never trust the file blindly.** A crash can land between "merged on GitHub" and "wrote run-state.json". On resume, for each scenario re-derive ground truth from `gh` (`gh pr view <pr> --json state,mergedAt`, `gh issue view <issue> --json state`, branch existence) and correct any drift before continuing. The file is a fast index; GitHub is the truth.
+3. **A verify verdict is pinned to its SHA.** Any merge into the integration branch after it makes it stale. Stage 4 re-runs Stage 3.5 rather than trust an old verdict.
 
 `run-state.json` is seeded from `issues.json` at the start of Stage 3 (every scenario `pending`).
 
@@ -188,6 +226,7 @@ Two rules:
 - `specs/<us-slug>/run-state.json` (per-scenario phase/status; the crash-resume index — see *Run state*)
 - `specs/<us-slug>/escalations.md` (only if any sub-issue / sub-PR escalated)
 - `specs/<us-slug>/.cycles/<issue-number>/auto-merge.log` per scenario (pr-auto-merge timeline).
+- `specs/<us-slug>/verify.md` (Stage 3.5 report, ends with the `VERDICT:` line) and its evidence under `specs/<us-slug>/.cycles/verify/`.
 - One scenario branch + auto-merged sub-PR per successfully completed scenario.
 - ONE final PR `atdd/<us-slug>/integration → main`, left OPEN for human review.
 
@@ -196,6 +235,7 @@ Two rules:
 Two granularities, coarse and fine:
 
 - **Coarse (`--from-stage`)** jumps directly to a stage and reuses the existing artifacts on disk. The skill is idempotent: rerunning a completed stage is a no-op when its outputs already exist (unless `--force` is passed).
-- **Fine (per-scenario, automatic).** When Stage 3 is re-entered, the orchestrator reads `run-state.json`, **reconciles each scenario against GitHub** (see *Run state*), and resumes each at its recorded phase: a scenario already `merged` is skipped, one stuck at `auto-merge` re-enters `pr-auto-merge`, one at `green` re-opens/repairs its PR, one `escalated` stays escalated. This is what makes an interrupted multi-hour run resumable at the scenario it died on rather than from the top of the stage.
+- **Fine (per-scenario, automatic).** When Stage 3 is re-entered, the orchestrator reads `run-state.json`, **reconciles each scenario against GitHub** (see *Run state*), and resumes each at its recorded phase: a scenario already `merged` is skipped, one with an open PR goes straight to Merge, one at `red` or `green` re-enters Produce on its existing branch (RED is skipped when its commit exists), one `escalated` stays escalated. This is what makes an interrupted multi-hour run resumable at the scenario it died on rather than from the top of the stage.
+- **Verify.** Stage 3.5 re-runs whenever `run-state.json:verify` is missing or stale (see *Run state*); `--from-stage verify` forces a fresh pass.
 
 Background watches (CI / bot-idle) are NOT restored across a session restart, so the resume path re-derives watch state from `gh` rather than any in-memory timer.

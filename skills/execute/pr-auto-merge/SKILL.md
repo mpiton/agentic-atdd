@@ -48,12 +48,12 @@ gh pr ready <pr-number>
 
 ### 2. Watch CI
 
-Wait until all required checks reach a terminal state — **without blocking the session** on Claude Code.
+Wait until all required checks reach a terminal state. The path depends on where the skill runs:
 
-- **Claude Code (default):** run the watch in the background (`run_in_background`) or via the `Monitor` tool, so the session is free to advance other scenarios while CI runs. The harness re-invokes you when the watch exits.
+- **Claude Code, inline in the orchestrator (default):** run the watch in the background (`run_in_background`) or via the `Monitor` tool, so the session is free to advance other scenarios while CI runs. The harness re-invokes you when the watch exits.
   - With `Monitor`, the line filter MUST match **every** terminal state, not just success: `succeeded|passed|failed|failure|cancelled|timed_out|skipped|error`. A filter that greps only the success marker stays silent on a crash, so a failed run looks identical to "still running" — the classic Monitor footgun.
   - With background `Bash`, run an until-loop that exits when no check is still `IN_PROGRESS`/`QUEUED`.
-- **Codex (fallback):** there is no `Monitor`/backgrounding, so block on `gh pr checks <pr-number> --watch --fail-fast=false`.
+- **Inside a subagent (`atdd-merge`), or on Codex:** block on `gh pr checks <pr-number> --watch --fail-fast=false`. A subagent that ends its turn to wait hands control back to its caller before the merge; Codex has no `Monitor`/backgrounding.
 
 **Re-entrancy (both paths).** Background and `Monitor` tasks are NOT restored across a session restart. Never trust an in-memory timer or counter to know where CI stood; on every wake re-derive the truth from GitHub:
 
@@ -64,7 +64,7 @@ gh pr checks <pr-number> --json name,state,conclusion
 Then branch on the derived state:
 
 - **All checks `COMPLETED` and every conclusion green** → proceed to step 3.
-- **Any `FAILURE`/`CANCELLED`/`TIMED_OUT`** → triage like `/apply-pr-feedback`: fetch the failing job logs (`gh run view <run-id> --log-failed`), attempt one targeted fix, push, restart step 2. This counts against `--max-fix-iterations`. Exceeded → escalate (step 6).
+- **Any `FAILURE`/`CANCELLED`/`TIMED_OUT`** → triage like `/apply-pr-feedback`: fetch the failing job logs (`gh run view <run-id> --log-failed`), attempt one targeted fix, push, restart step 2. Never weaken an acceptance test (delete, skip, loosen an assertion) to turn CI green. This counts against `--max-fix-iterations`. Exceeded → escalate (step 6).
 
 ### 3. Bot idle watch
 
@@ -78,10 +78,10 @@ gh api "repos/{owner}/{repo}/pulls/<pr>/comments"   --jq '.[]|{login:.user.login
 
 The three endpoints are independent — fetch them concurrently (`&` + `wait`) and fold the timestamps into one `last_bot_activity = max(at)` across all bot entries.
 
-Run the idle wait **without blocking the session** on Claude Code, same as step 2:
+Run the idle wait on the same path as step 2:
 
-- **Claude Code (default):** background `Bash` until-loop (or `Monitor`) that re-polls and exits when `(now - last_bot_activity) >= idle_window`. The session stays free meanwhile; the harness re-invokes you on exit.
-- **Codex (fallback):** block, sleeping `min(60s, remaining_idle_window)` between polls.
+- **Claude Code, inline in the orchestrator (default):** background `Bash` until-loop (or `Monitor`) that re-polls and exits when `(now - last_bot_activity) >= idle_window`. The session stays free meanwhile; the harness re-invokes you on exit.
+- **Inside a subagent, or on Codex:** block, sleeping `min(60s, remaining_idle_window)` between polls.
 
 **Re-entrancy.** The idle window is derived state, never an in-memory clock: on every wake recompute `last_bot_activity` from the three endpoints and compare against `now`. A restart that loses the background task loses nothing — the next poll reconstructs the window from GitHub.
 

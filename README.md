@@ -8,17 +8,18 @@ The skills are small. You can read any one of them in under a minute, fork it, s
 
 ## What it does
 
-You give the pipeline a story (or import a GitHub issue you already wrote). It:
+You give the pipeline a story (or import a ticket you already wrote — GitHub issue or Linear card). It:
 
 1. Interviews you on the business rules until they're concrete enough to test.
 2. Generates Gherkin scenarios tagged by test level (`@use-case`, `@e2e`, `@ui`) and by branch (`@nominal`, `@violation`, `@auth`, `@technical`, `@limit`).
 3. Stops. You read the scenarios. You say `OK` or `REGENERATE <reason>`.
 4. Pushes the spec to GitHub Issues — one parent, one user story, one sub-issue per scenario. Idempotent, so you can rerun without duplicates.
 5. Creates an integration branch (`atdd/<slug>/integration`) off `main`.
-6. For each scenario sub-issue: writes the failing test, runs `review-fidelity`, auto-corrects up to twice, then writes the minimal implementation, runs `review-architecture` and `review-intent` in parallel, auto-corrects up to twice, opens a draft PR targeting the integration branch.
+6. For each scenario sub-issue, in its own subagent on Claude Code (Codex runs the same skills inline, see below): writes the failing test, runs `review-fidelity`, auto-corrects up to twice, then writes the minimal implementation, runs `review-architecture` and `review-intent`, auto-corrects up to twice, opens a draft PR targeting the integration branch.
 7. Marks the PR ready, watches CI, watches bot reviewers (CodeRabbit, codex, github-actions, whatever you've wired). When the bots go quiet, if there's actionable feedback it invokes `apply-pr-feedback`, pushes, and loops. When CI is green and nothing is outstanding, it squash-merges into the integration branch.
-8. Repeats for every scenario.
-9. Opens one final PR `integration → main` and stops there. That PR is yours to merge.
+8. Repeats for every scenario. On Claude Code each one runs in a fresh subagent, so your session's context doesn't grow with the number of scenarios.
+9. Checks the integrated story the way a human would, without looking at the tests: opens the app in a browser for `@ui` scenarios, calls the real API or CLI for `@e2e`, scripts the use case, and reads the code only when the app can't run. It also smoke-tests up to five existing flows the diff touched and lists the rest as skipped.
+10. Opens one final PR `integration → main` and stops there. If verification found a divergence, the PR opens as a draft with the findings on top. That PR is yours to merge.
 
 Two human gates: the spec, and the final PR. The rest is hands-off.
 
@@ -56,6 +57,7 @@ Writes `.atdd-pipeline.json` at the repo root. Auto-merge is on by default, the 
 
 - [`impact-map`](skills/spec/impact-map/SKILL.md) — capture a story, an actor, a goal, business rules numbered `R-NN`.
 - [`from-issue`](skills/spec/from-issue/SKILL.md) — import an existing GitHub issue. The issue you already wrote stays; the pipeline back-fills `context.md` from its body.
+- [`from-linear`](skills/spec/from-linear/SKILL.md) — import a Linear ticket. Fetches the card via Linear MCP, CLI, or GraphQL API (first one available), back-fills `context.md`; GitHub Issues still hosts the work breakdown.
 - [`spec-generate`](skills/spec/spec-generate/SKILL.md) — Gherkin scenarios from the context, one feature file per rule.
 - [`spec-review`](skills/spec/spec-review/SKILL.md) — read-only audit of the scenarios across four axes (branches, coherence, gaps, triangulation).
 
@@ -72,6 +74,7 @@ Writes `.atdd-pipeline.json` at the repo root. Auto-merge is on by default, the 
 - [`review-intent`](skills/execute/review-intent/SKILL.md) — does the code do only what the test asks? No hidden side effects, no speculative branches.
 - [`apply-pr-feedback`](skills/execute/apply-pr-feedback/SKILL.md) — fetch every actionable review comment (bot or human) on a PR, apply only the changes asked for, commit and push. Bundled so the plugin has no external skill dependency.
 - [`pr-auto-merge`](skills/execute/pr-auto-merge/SKILL.md) — watches CI plus bot reviewers, runs `apply-pr-feedback` on actionable feedback, squash-merges into the integration branch. Refuses to operate on PRs whose base is `main` (the final PR is always your call).
+- [`verify-acceptance`](skills/execute/verify-acceptance/SKILL.md) — plays each scenario on the running app like a QA would (browser, real interface, throwaway script, code trace as a last resort), blind to the tests. Smoke-tests touched flows, flags weakened tests, ends with `VERDICT: OK | PARTIAL | FAIL`.
 
 ### Orchestrator
 
@@ -85,6 +88,7 @@ Writes `.atdd-pipeline.json` at the repo root. Auto-merge is on by default, the 
 | `/setup-atdd-pipeline` | One-time per-repo config. |
 | `/impact-map` | Capture a new story. |
 | `/from-issue <N>` | Import an existing GitHub issue. |
+| `/from-linear <ID>` | Import a Linear ticket (e.g. `ENG-123`). |
 | `/spec-generate` | Gherkin scenarios from the context. |
 | `/spec-review` | Read-only review of the scenarios. |
 | `/to-issues-atdd` | Sync to GitHub Issues + create the integration branch. |
@@ -92,6 +96,7 @@ Writes `.atdd-pipeline.json` at the repo root. Auto-merge is on by default, the 
 | `/green <issue>` | Minimal implementation + open the draft PR. |
 | `/auto-merge <pr>` | Watch + apply-pr-feedback + squash-merge a sub-PR. |
 | `/apply-pr-feedback [pr]` | Apply every actionable review comment on a PR, commit, push. |
+| `/verify-acceptance <us-slug>` | Check the integrated story by hand on the running app, before the final PR. |
 | `/atdd-run <us-slug>` | Run the whole thing end to end. |
 | `/review-fidelity` · `/review-architecture` · `/review-intent` | Standalone reviewer runs. |
 
@@ -103,7 +108,9 @@ Read [`docs/USAGE.md`](docs/USAGE.md) for the three entry paths (existing GitHub
 
 Codex CLI auto-discovers skills from `~/.codex/skills/<name>/SKILL.md` using the same format Claude Code uses. The installer symlinks each plugin skill into both `~/.claude/skills/` and `~/.codex/skills/`, so one edit propagates to both harnesses. `scripts/sync-codex.sh` is a deprecated alias that delegates to `install.sh`.
 
-Parallel reviewers (the default on Claude Code via the `Agent` tool, formerly `Task`) fall back to sequential execution under Codex automatically. You can force sequential anywhere with `--sequential` on `atdd-run`.
+Reviewers run in parallel (via the `Agent` tool, formerly `Task`) only when `green-cycle` runs in the orchestrator session. Inside the `atdd-scenario` agent, and under Codex, they run one after the other. You can force sequential anywhere with `--sequential` on `atdd-run`.
+
+Claude Code runs each scenario (and the verify stage) in its own subagent. Codex has no subagents, so the skills run inline; on a long story, `/clear` between scenarios and resume with `/atdd-run <slug> --from-stage red` — `run-state.json` keeps the progress.
 
 ## Example
 

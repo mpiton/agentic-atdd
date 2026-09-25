@@ -14,3 +14,7 @@ Phase 4 (EXECUTION) of the pipeline. RED → GREEN cycle per scenario sub-issue,
 - **[review-intent](review-intent/SKILL.md)** — Diff conforms to the scenario, no over-engineering, no hidden side effects.
 
 Each reviewer is callable standalone (`/review-architecture <diff>`), outside the pipeline.
+
+## Verify
+
+- **[verify-acceptance](verify-acceptance/SKILL.md)** — Stage 3.5. Plays each merged scenario on the running app like a human QA (browser, real interface, script, code trace as a last resort), blind to the tests. Smoke-tests touched flows, flags weakened tests, ends with `VERDICT: OK | PARTIAL | FAIL`.

@@ -4,6 +4,23 @@ All notable changes to this plugin land here. Format follows [Keep a Changelog](
 
 ## [Unreleased]
 
+### Added
+
+- `from-linear` skill (`/from-linear <ticket-id>`) — third entry point next to `impact-map` and `from-issue`. Imports a Linear card by identifier (e.g. `ENG-123`): resolves an access path at runtime (Linear MCP tools → `linear` CLI on PATH → GraphQL API with `LINEAR_API_KEY`), parses the description and comments into `specs/<us-slug>/context.md`, interviews for the missing actor/action/data/test-level fields, and leaves one back-link comment on the card when the access path allows writes. GitHub Issues stays the pipeline database: unlike `from-issue` it does not seed `issues.json`, so `to-issues-atdd` creates the parent and US fresh.
+- `verify-acceptance` skill (`/verify-acceptance <us-slug>`) — Stage 3.5, between the last scenario merge and the final PR. Checks the integrated story the way a human would, blind to the acceptance tests: a real browser for `@ui`, the real HTTP/CLI interface for `@e2e`, a throwaway script for `@use-case`, a `file:line` code trace when the app can't start or the level's method is impossible. Smoke-tests up to 5 touched entry points and flags weakened tests, both pre-existing ones and the story's own acceptance tests since their RED commit. Starts the app only against local backends and redacts auth headers from its request logs. Writes `specs/<us-slug>/verify.md` ending with `VERDICT: OK | PARTIAL | FAIL`.
+- `agents/atdd-verify.md` — runs `verify-acceptance` in its own context so screenshots and app logs stay out of the orchestrator.
+- `verify` block in `.atdd-pipeline.json` (`start_command`, `base_url`, `ready_check`, all optional) and interview item 12 in `setup-atdd-pipeline`.
+- `run-state.json:verify` (`verdict`, `sha`, `report`, `at`). A verdict is pinned to the integration tip it checked; Stage 4 re-runs verify when it is stale.
+- Contract checks section [11]: the `VERDICT: OK | PARTIAL | FAIL` last line between `verify-acceptance` and `atdd-run`, the `ESCALATED: verify found` phrase, the `WEAKENED-TEST` / `REGRESSION` / `UNVERIFIED` markers, the no-weakening rule in `apply-pr-feedback` and `pr-auto-merge`, the three `subagent_type` dispatch names, no `isolation:` in agent frontmatter, and the workflow's own `isolation: 'worktree'`.
+
+### Changed
+
+- `atdd-run` sequential Stage 3 now dispatches each scenario to the `atdd-scenario` agent, then its PR to the `atdd-merge` agent, one at a time in the main checkout. The orchestrator keeps only `run-state.json` and the agents' short reports, so context no longer grows with the number of scenarios. Inside a scenario agent the two green reviewers run one after the other (a subagent can't spawn subagents). Codex, `--no-auto-merge` and `auto_merge.enabled: false` run the skills inline; on Codex, `/clear` between scenarios and resume with `--from-stage red`. The orchestrator writes `run-state.json` each time an agent returns. On resume a scenario with an open PR goes straight to merge.
+- `atdd-run` Stage 4 leads the final PR with one `Blockers` list (escalated scenarios, then verify findings) and opens it as a draft when that list is non-empty. The per-scenario verification summary stands on its own, since `verify.md` stays local. Stage 3.5 accepts a report only when its SHA matches the tip it verified, and a missing report counts as `FAIL`. `--from-stage verify` added.
+- `agents/atdd-scenario.md` no longer sets `isolation: worktree`; the Stage 3 workflow passes it on the call, so sequential mode can reuse the agent in the main checkout (env files, installed deps). Branching from the integration tip and the `wip:` commit on escalation live in `red-cycle` step 2 / §6 and `green-cycle` §4, so the Codex path gets them too. Both skills stage only the files the cycle touched, never `specs/<us-slug>/`, and `red-cycle` skips RED when the branch already has its commit.
+- `pr-auto-merge` blocks on the CI and bot watches when it runs inside a subagent (`atdd-merge`): a subagent that ends its turn returns to the orchestrator before the merge. Background watches stay for inline use. Its CI triage never weakens an acceptance test.
+- `apply-pr-feedback`: tests are the contract. It never deletes, skips or loosens an acceptance test to satisfy a comment; such comments are classified out of scope.
+
 ## [0.2.0] — 2026-06-02
 
 ### Added

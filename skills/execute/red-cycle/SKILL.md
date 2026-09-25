@@ -37,7 +37,14 @@ From the labels:
 
 ### 2. Branch
 
-Create and check out a branch: `atdd/<us-slug>/scenario-<issue-number>`.
+Cut `atdd/<us-slug>/scenario-<issue-number>` from the integration tip, not from wherever HEAD is. In the main checkout HEAD is the previous scenario's branch; in a fresh worktree it is `origin/HEAD`. Neither carries the scenarios merged so far.
+
+```bash
+git fetch origin <integration_branch>
+git checkout -b atdd/<us-slug>/scenario-<issue-number> origin/<integration_branch>
+```
+
+`integration_branch` comes from `specs/<us-slug>/issues.json` (fallback: `.atdd-pipeline.json:integration_branch_pattern`). If the branch already exists (resumed run), check it out instead. If it already carries a `red(<R-NN>)` commit, RED is done: hand off to `green-cycle`.
 
 ### 3. Generate the test (attempt 1)
 
@@ -77,13 +84,15 @@ While the verdict is `REGENERATE` AND the attempt counter is `< 2`:
 
 ### 6. Escalate or hand off
 
-- If `VERDICT: OK` after at most 2 attempts: commit the test on the branch with message `red(<R-NN>): failing test for <scenario title>` and hand off to `green-cycle`.
+- If `VERDICT: OK` after at most 2 attempts: commit the test on the branch with message `red(<R-NN>): failing test for <scenario title>` and hand off to `green-cycle`. Stage only the files this cycle wrote (the test and its setup), never `git add -A`.
 - If `VERDICT: REGENERATE` after 2 attempts: post a comment on the issue containing:
   - The final reviewer report.
   - The diffs of the 2 attempts.
   - The phrase `ESCALATED: red-cycle exhausted auto-correction.`
 
   Leave the branch in place for human inspection. Return without invoking `green-cycle`.
+
+On any escalation in this skill (here or the step 3 setup cap), commit the leftover work on the branch as `wip: escalated at red`, no push. Stage only the files this cycle wrote. `specs/<us-slug>/` belongs to the orchestrator: never stage it. The tree is clean when no tracked file is modified; the untracked `specs/` files stay where they are.
 
 ## Outputs
 

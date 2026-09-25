@@ -29,6 +29,7 @@
   "skills": [
     { "name": "impact-map",          "path": "skills/spec/impact-map/SKILL.md" },
     { "name": "from-issue",          "path": "skills/spec/from-issue/SKILL.md" },
+    { "name": "from-linear",         "path": "skills/spec/from-linear/SKILL.md" },
     { "name": "spec-generate",       "path": "skills/spec/spec-generate/SKILL.md" },
     { "name": "spec-review",         "path": "skills/spec/spec-review/SKILL.md" },
     { "name": "to-issues-atdd",      "path": "skills/sync/to-issues-atdd/SKILL.md" },
@@ -39,6 +40,7 @@
     { "name": "review-intent",       "path": "skills/execute/review-intent/SKILL.md" },
     { "name": "apply-pr-feedback",   "path": "skills/execute/apply-pr-feedback/SKILL.md" },
     { "name": "pr-auto-merge",       "path": "skills/execute/pr-auto-merge/SKILL.md" },
+    { "name": "verify-acceptance",   "path": "skills/execute/verify-acceptance/SKILL.md" },
     { "name": "atdd-run",            "path": "skills/orchestrate/atdd-run/SKILL.md" },
     { "name": "setup-atdd-pipeline", "path": "skills/orchestrate/setup-atdd-pipeline/SKILL.md" }
   ],
@@ -46,6 +48,7 @@
     { "name": "setup-atdd-pipeline", "skill": "setup-atdd-pipeline" },
     { "name": "impact-map",          "skill": "impact-map" },
     { "name": "from-issue",          "skill": "from-issue" },
+    { "name": "from-linear",         "skill": "from-linear" },
     { "name": "spec-generate",       "skill": "spec-generate" },
     { "name": "spec-review",         "skill": "spec-review" },
     { "name": "to-issues-atdd",      "skill": "to-issues-atdd" },
@@ -56,6 +59,7 @@
     { "name": "review-architecture", "skill": "review-architecture" },
     { "name": "review-intent",       "skill": "review-intent" },
     { "name": "apply-pr-feedback",   "skill": "apply-pr-feedback" },
-    { "name": "auto-merge",          "skill": "pr-auto-merge" }
+    { "name": "auto-merge",          "skill": "pr-auto-merge" },
+    { "name": "verify-acceptance",   "skill": "verify-acceptance" }
   ]
 }

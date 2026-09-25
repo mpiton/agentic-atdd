@@ -69,7 +69,15 @@ Now per scenario (or use `/atdd-run` to chain everything below):
 
 `/auto-merge` watches the draft PR through CI and bot review, runs `apply-pr-feedback` if bots flag anything, and squash-merges into the integration branch when it's clean. It refuses to merge anything whose base is `main`.
 
-When every scenario is in, the orchestrator opens the final PR from the integration branch to `main` and stops. That PR is the one you review and merge yourself.
+When every scenario is in, check the result by hand before opening the final PR:
+
+```bash
+/verify-acceptance <us-slug>
+```
+
+It starts your app when at least one scenario is `@ui` or `@e2e`, then plays each merged scenario the way a QA would (escalated ones are skipped): a real browser for `@ui`, real HTTP or CLI calls for `@e2e`, a throwaway script for `@use-case`. It falls back to reading the code when the app won't start or the scenario's method isn't available, such as no browser in the session. It doesn't read the tests first, so a scenario the tests misread still shows up. It also smoke-tests the existing flows the diff touched and flags any test that was weakened on the way. The report lands in `specs/<us-slug>/verify.md` and ends with `VERDICT: OK | PARTIAL | FAIL`.
+
+Then the orchestrator opens the final PR from the integration branch to `main` and stops. That PR is the one you review and merge yourself.
 
 If you want the whole chain after `from-issue`:
 
@@ -77,7 +85,19 @@ If you want the whole chain after `from-issue`:
 /atdd-run <us-slug>
 ```
 
-Same result, fewer keystrokes. The orchestrator stops at the two human gates.
+Same result, fewer keystrokes. The orchestrator stops at the two human gates. On Claude Code each scenario runs in its own subagent, so a story with ten scenarios doesn't fill your session's context.
+
+### Variant — the ticket lives in Linear
+
+Same situation, different tracker:
+
+```bash
+/from-linear ENG-123
+```
+
+The skill resolves an access path in this order: Linear MCP tools in the session, a `linear` CLI on PATH, then the GraphQL API with `LINEAR_API_KEY`. If none works it stops and tells you what to set up — it never reconstructs the card from memory.
+
+Two differences with `/from-issue`: GitHub Issues still becomes the database (`/to-issues-atdd` creates the parent and US fresh, since there's no GitHub issue to reuse), and the Linear card gets at most one back-link comment, skipped when the access path is read-only. Its state, title, labels and assignee stay untouched. From `context.md` on, the flow is identical to Case A.
 
 ---
 
@@ -153,6 +173,7 @@ In greenfield, expect `spec-generate` to interview you heavily — there's no PR
 /atdd-run <us-slug> --from-stage sync        # rerun to-issues-atdd (idempotent, safe)
 /atdd-run <us-slug> --from-stage red         # next scenario's red cycle
 /atdd-run <us-slug> --from-stage auto-merge  # take over PRs already opened
+/atdd-run <us-slug> --from-stage verify      # re-check the integrated story by hand
 /atdd-run <us-slug> --from-stage final-pr    # just open the integration → main PR
 ```
 
@@ -178,6 +199,16 @@ When it gives up, it posts a comment on the PR with the timeline and leaves the 
 
 ---
 
+## When verify fails
+
+`VERDICT: FAIL` means the running app contradicts a scenario, an existing flow broke (`REGRESSION`), or a test that already existed on `main` was deleted, skipped or loosened (`WEAKENED-TEST`). The orchestrator comments on the affected issues, logs the finding in `escalations.md`, and opens the final PR as a draft with the findings at the top.
+
+It does not fix anything itself. A failing scenario means its test missed a behavior, so the fix starts with a test: run `/red <issue>` again with the finding as input, then `/green`, then `/auto-merge`. After the merge, `--from-stage verify` re-checks the story.
+
+`VERDICT: PARTIAL` is softer: some scenarios could not be checked (no browser, an external service, state the app can't reach). The final PR lists them with the reason; check those by hand before you merge.
+
+---
+
 ## When the spec review keeps saying REGENERATE
 
 The most common cause is that you haven't given the pipeline enough concrete data. "User can checkout" is not a scenario. "User checks out a cart with one item priced 12.50 EUR, shipping is 4.99 EUR, total should be 17.49 EUR" is. If `spec-review` is unhappy, look at its `Triangulation` axis first — that's the one that catches abstract scenarios pretending to be concrete.
@@ -200,8 +231,10 @@ The repo holds:
 - `specs/<us-slug>/.cycles/<n>/*.md` — per-scenario reviewer reports.
 - `specs/<us-slug>/.cycles/<n>/auto-merge.log` — the CI + bot watch timeline.
 - `specs/<us-slug>/escalations.md` — only present if at least one cycle escalated.
+- `specs/<us-slug>/verify.md` — the hands-on verification report and its `VERDICT:` line.
+- `specs/<us-slug>/.cycles/verify/` — screenshots, request logs, script output and the app log behind that report.
 
-You commit all of it. The pipeline reads these files when you resume.
+You commit all of it except `.cycles/verify/`, which holds raw app logs and screenshots: keep that folder out of git. The pipeline reads these files when you resume.
 
 ---
 
@@ -209,8 +242,8 @@ You commit all of it. The pipeline reads these files when you resume.
 
 The same `SKILL.md` files work on both harnesses. Two behavioural differences:
 
-- Parallel reviewers run via the `Agent` tool on Claude Code (formerly `Task`; the alias still works). Under Codex, there's no `Agent` tool, so the orchestrator runs the reviewers sequentially in the same session. You can force this anywhere with `--sequential`.
-- Subagent dispatch under Claude Code uses the `Agent` tool when available; under Codex, the orchestrator inlines the equivalent prompt.
+- Reviewers run in parallel via the `Agent` tool (formerly `Task`; the alias still works) only when `green-cycle` runs in the orchestrator session. Under Codex there's no `Agent` tool, so they run sequentially in the same session. You can force this anywhere with `--sequential`.
+- On Claude Code each scenario runs in its own subagent (`atdd-scenario`, then `atdd-merge`), and verify runs in `atdd-verify`, so the orchestrator only keeps short reports. A subagent can't start another one, so inside a scenario the two green reviewers run one after the other. Under Codex the skills run inline in one session; on a long story, `/clear` between scenarios and resume with `--from-stage red`.
 
 Everything else is identical. The plugin lives in one folder, symlinked to both `~/.claude/skills/` and `~/.codex/skills/`.
 
